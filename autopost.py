@@ -15,6 +15,7 @@ from utils_autopost import (
     predict_10pics_posts,
     predict_3videos_posts,
     predict_full_days,
+    is_valid_file,
 )
 
 from quiz import count_quiz_questions
@@ -114,6 +115,16 @@ async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
 
         # Логируем выбранный файл
         logger.info(f"Подготовка файла для категории {real_cat}: {file_path}")
+        
+        # Дополнительная проверка перед отправкой
+        if not is_valid_file(file_path):
+            logger.error(f"Файл не прошел проверку: {file_path}")
+            await context.bot.send_message(
+                chat_id=POST_CHAT_ID,
+                text=f"Файл для категории {real_cat} не прошел проверку: {file_path}"
+            )
+            return
+            
         media.append(InputMediaPhoto(open(file_path, "rb")))
         used_files.append((file_path, real_cat))
 
@@ -161,6 +172,16 @@ async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
                 text="Не хватает видосиков video-meme 😭"
             )
             return
+            
+        # Дополнительная проверка перед отправкой
+        if not is_valid_file(file_path):
+            logger.error(f"Видео не прошло проверку: {file_path}")
+            await context.bot.send_message(
+                chat_id=POST_CHAT_ID,
+                text=f"Видео не прошло проверку: {file_path}"
+            )
+            return
+            
         media.append(InputMediaVideo(open(file_path, "rb")))
         used_files.append((file_path, "video-meme"))
 

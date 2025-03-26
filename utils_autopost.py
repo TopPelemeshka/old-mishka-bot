@@ -21,6 +21,32 @@ from config import (
     ARCHIVE_VIDEO_MEME_DIR,
 )
 
+def is_valid_file(file_path):
+    """
+    Проверяет, что файл подходит для отправки в Telegram.
+    
+    Файл должен:
+    - Не быть .gitkeep
+    - Не быть пустым
+    - Иметь допустимое расширение
+    """
+    # Проверка, что это не .gitkeep
+    if file_path.endswith('.gitkeep'):
+        return False
+    
+    # Проверка, что файл существует
+    if not os.path.exists(file_path):
+        return False
+    
+    # Проверка, что файл не пустой
+    if os.path.getsize(file_path) == 0:
+        return False
+    
+    # Проверка расширения
+    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.webm', '.webp']
+    ext = os.path.splitext(file_path)[1].lower()
+    return ext in valid_extensions
+
 def get_top_anecdote_and_remove():
     """Возвращает случайный анекдот из файла и удаляет его из файла."""
     if not os.path.exists(ANECDOTES_FILE):
@@ -64,10 +90,15 @@ def get_random_file_from_folder(folder):
     """Вернуть путь к случайному файлу из папки."""
     if not os.path.exists(folder):
         return None
-    files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
-    if not files:
+    
+    # Получаем список файлов и фильтруем только валидные
+    all_files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+    valid_files = [os.path.join(folder, f) for f in all_files if is_valid_file(os.path.join(folder, f))]
+    
+    if not valid_files:
         return None
-    return os.path.join(folder, random.choice(files))
+    
+    return random.choice(valid_files)
 
 def move_file_to_archive(filepath, category):
     """Перенести файл в архивную папку соответствующей категории."""
