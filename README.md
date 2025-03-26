@@ -1,76 +1,114 @@
-# Telegram Bot
+# Mishka Bot
 
-Многофункциональный Telegram бот с поддержкой различных команд и функций.
+Бот для Telegram, который может:
+- Отправлять случайные мемы и арты
+- Играть в казино (рулетка, слоты)
+- Отправлять случайные анекдоты и мудрости
+- Воспроизводить звуки
+- И многое другое!
 
 ## Установка
 
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/your-bot.git
-cd your-bot
+git clone https://github.com/TopPelemeshka/mishka-bot.git
+cd mishka-bot
 ```
 
-2. Создайте виртуальное окружение и активируйте его:
+2. Установите необходимые пакеты для создания виртуального окружения:
 ```bash
-python -m venv venv
-source venv/bin/activate  # для Linux/Mac
-venv\Scripts\activate     # для Windows
+# Для Debian/Ubuntu:
+sudo apt update
+sudo apt install python3.10-venv python3-pip
 ```
 
-3. Установите зависимости:
+3. Создайте и активируйте виртуальное окружение:
+```bash
+python3 -m venv venv
+source venv/bin/activate  # для Linux/Mac
+# или
+.\venv\Scripts\activate  # для Windows
+```
+
+4. Установите зависимости:
 ```bash
 pip install -r requirements.txt
 ```
 
-## Настройка
-
-1. Скопируйте примеры конфигурационных файлов:
+5. Создайте конфигурационные файлы:
 ```bash
 cp config/bot_config.example.json config/bot_config.json
+cp config/file_ids.example.json config/file_ids.json
 cp config/paths_config.example.json config/paths_config.json
 cp config/sound_config.example.json config/sound_config.json
-cp config/file_ids.example.json config/file_ids.json
 ```
 
-2. Отредактируйте файлы конфигурации в директории `config/`:
-   - `bot_config.json` - настройки бота (токен, разрешенные чаты и т.д.)
-   - `paths_config.json` - пути к директориям с контентом
-   - `sound_config.json` - настройки звуков (список доступных звуков и их названия)
-   - `file_ids.json` - идентификаторы медиафайлов (GIF, изображения и т.д.)
-
-3. Создайте необходимые директории для контента:
-   - `post_materials/` - для исходных материалов
-   - `post_archive/` - для архивированных материалов
-   - `state_data/` - для данных состояний
+6. Отредактируйте конфигурационные файлы, добавив свои токены и настройки.
 
 ## Запуск
 
+1. Активируйте виртуальное окружение (если еще не активировано):
+```bash
+source venv/bin/activate  # для Linux/Mac
+# или
+.\venv\Scripts\activate  # для Windows
+```
+
+2. Запустите бота:
 ```bash
 python main.py
 ```
 
-## Функциональность
+## Настройка автозапуска (для Linux)
 
-- Автоматический постинг контента
-- Система квизов
-- Звуковые эффекты (встроенная панель звуков)
-- Игровые функции
-- И другие возможности
+1. Создайте файл сервиса systemd:
+```bash
+sudo nano /etc/systemd/system/mishka-bot.service
+```
+
+2. Добавьте следующее содержимое (замените пути на ваши):
+```ini
+[Unit]
+Description=Mishka Telegram Bot
+After=network.target
+
+[Service]
+Type=simple
+User=your_username
+WorkingDirectory=/mnt/external_disk/mishka-bot
+Environment=PATH=/mnt/external_disk/mishka-bot/venv/bin
+ExecStart=/mnt/external_disk/mishka-bot/venv/bin/python main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+3. Активируйте и запустите сервис:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable mishka-bot
+sudo systemctl start mishka-bot
+```
+
+4. Проверьте статус:
+```bash
+sudo systemctl status mishka-bot
+```
 
 ## Структура проекта
 
-```
-├── config/                 # Конфигурационные файлы
-├── handlers/              # Обработчики команд
-├── sound_panel/          # Звуковые файлы (включены в репозиторий)
-├── pictures/             # Изображения (включены в репозиторий)
-├── post_materials/       # Исходные материалы
-├── post_archive/         # Архив материалов
-├── state_data/           # Данные состояний
-├── main.py              # Основной файл бота
-├── config.py            # Загрузчик конфигураций
-└── requirements.txt     # Зависимости проекта
-```
+- `main.py` - основной файл бота
+- `handlers/` - обработчики команд
+- `casino/` - модули казино
+- `config/` - конфигурационные файлы
+- `pictures/` - изображения для бота
+- `sound_panel/` - звуковые файлы
+- `post_materials/` - материалы для постов
+- `post_archive/` - архив постов
+- `state_data/` - данные состояния
+- `phrases/` - текстовые файлы с фразами
 
 ## Лицензия
 
