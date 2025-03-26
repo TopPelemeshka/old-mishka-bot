@@ -43,7 +43,18 @@ cp config/paths_config.example.json config/paths_config.json
 cp config/sound_config.example.json config/sound_config.json
 ```
 
-6. Отредактируйте конфигурационные файлы, добавив свои токены и настройки.
+6. Создайте файлы состояния:
+```bash
+cp state_data/scheduled_posts.example.json state_data/scheduled_posts.json
+cp state_data/balance.example.json state_data/balance.json
+cp state_data/rating.example.json state_data/rating.json
+cp state_data/weekly_quiz_count.example.json state_data/weekly_quiz_count.json
+cp state_data/praise_state.example.json state_data/praise_state.json
+cp state_data/sleep_index.example.json state_data/sleep_index.json
+cp state_data/bot_state.example.json state_data/bot_state.json
+```
+
+7. Отредактируйте конфигурационные файлы, добавив свои токены и настройки.
 
 ## Запуск
 
