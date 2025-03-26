@@ -6,46 +6,14 @@ from balance import get_balance, update_balance
 from casino.roulette_utils import get_roulette_result
 from telegram.error import TimedOut
 import time
+import json
+import os
 
-# Списки для ставок на черное, красное и зеро (ID гифок)
-black_gif_ids = ['CgACAgIAAxkBAAID9me45nkKknU5sVQLgvQmhnoqxbCQAAJDcwACklXISTmzQBaNQ8e7NgQ', 
-                 'CgACAgIAAxkBAAID8me45mVuztHElvA3oc_G6ZxNxmZkAAJBcwACklXISVCKm-JFsIkJNgQ',
-                 'CgACAgIAAxkBAAID8Ge45lpSuXqKhrqfDmKrPwi95YZpAAJAcwACklXISXW0_1OtReg5NgQ',
-                 'CgACAgIAAxkBAAID7me45k5YndtHTUby34RzbaTDbfhXAAI_cwACklXISXXZjcu2g88GNgQ',
-                 'CgACAgIAAxkBAAID7Ge45kXFm2Wp0t5IVNe04v1VJYjiAAI-cwACklXIScZXS4xDdgABIDYE',
-                 'CgACAgIAAxkBAAID6me45jpovYQKCY8lRPQ-O5JAtSxAAAI9cwACklXISYve-ahtDlPzNgQ',
-                 'CgACAgIAAxkBAAID6Ge45hTsB5E7hndYyTzKHCdaBDChAAI7cwACklXISTW-WQuyyNCVNgQ',
-                 'CgACAgIAAxkBAAID5Ge45WoOBRipgfeFeBZpbI1pZKTmAAIzcwACklXISWRlA5cYryoPNgQ',
-                 'CgACAgIAAxkBAAID4me45V4hctDNUAY__7e44C5-B6IiAAIxcwACklXISfQHpAqfDTjUNgQ',
-                 'CgACAgIAAxkBAAID4Ge45VRRRdIKxoFQ38vHl-Rda48OAAIwcwACklXISeXetXZ8ePN2NgQ',
-                 'CgACAgIAAxkBAAID3me45UiTuzFHXBYkJrYPdgogwYDqAAIvcwACklXISdwVf6Quv--zNgQ',
-                 'CgACAgIAAxkBAAID3Ge45T2Icg2Z9dtpsMAcRgOB0smFAAIscwACklXISZZYdbAvMr05NgQ',
-                 'CgACAgIAAxkBAAID2We45RDwasMrlzben1YCoMZtBMXnAAIjcwACklXISTZW-MooxkyLNgQ',
-                 'CgACAgIAAxkBAAID12e45QGLjFMJ8t-s482x2vIs2z8MAAIhcwACklXISb5Yt2rlKtPrNgQ',
-                 'CgACAgIAAxkBAAID1We45Paboluo5HrN3pZYhdQ6-USmAAIgcwACklXISTM9muk0mHiGNgQ',
-                 'CgACAgIAAxkBAAID02e45Oe_I_dwyq8cdhWucqBx-4idAAIfcwACklXISfx_bUYDI836NgQ',
-                 'CgACAgIAAxkBAAID9Ge45m-XEGq_Dchtg10W6ZLk0Rq6AAJCcwACklXISbTPkuJ4WStvNgQ']
-
-red_gif_ids = ['CgACAgIAAxkBAAIEDWe459PtSpb4hU1mZWPuzqe2EvdKAAJQcwACklXISZ-q6OVKL6rjNgQ', 
-               'CgACAgIAAxkBAAIECWe457nbfaA1L9hIZKDCDYzr9ltXAAKOYwACxHPISXwkPWPPdK4bNgQ',
-               'CgACAgIAAxkBAAIEB2e456wuL5X43sMLce-MvX9mvUISAAJNcwACklXISZGwTGqG0_OPNgQ',
-               'CgACAgIAAxkBAAIEBWe455snL-scUUfzphLdBtkJvFg7AAJMcwACklXISR2mtzMH_R2LNgQ',
-               'CgACAgIAAxkBAAIEA2e455G6QKJ9NjhA6xnOjgeXAqswAAJLcwACklXISfwBUsOZHXjvNgQ',
-               'CgACAgIAAxkBAAIEAWe454aMlstjz15cKz0YbriRa2GEAAJKcwACklXISUZl3ALo_F5uNgQ',
-               'CgACAgIAAxkBAAID_2e453zRxdgc15qBT51wEk8vnfBxAAJJcwACklXISU2RWqqvdZHYNgQ',
-               'CgACAgIAAxkBAAID_We452H-Jl8753JAuE5rYprNRrcsAAJIcwACklXISZ_cz9YM3jmANgQ',
-               'CgACAgIAAxkBAAID-2e450E-hyvRwN87HBT_VlmHucRZAAJHcwACklXISTdZUIbqW8gCNgQ',
-               'CgACAgIAAxkBAAIED2e46G4WG0B8tDJWEw5mNBpjsVEyAAJVcwACklXISQodGtEAAfAxyTYE',
-               'CgACAgIAAxkBAAIEEWe46Iblsha2xTOMQIaqxzvF7DBIAAJWcwACklXISbn9T1NjLJGwNgQ',
-               'CgACAgIAAxkBAAIEE2e46JHNogcmeXXla_u7f_Gv-jt2AAJYcwACklXISZ55fWvtx_yCNgQ',
-               'CgACAgIAAxkBAAIEFWe46JzwFWCMk4SkJ78S_j_NipJUAAJZcwACklXISfcMUzQleb6wNgQ',
-               'CgACAgIAAxkBAAIEF2e46Kbx_TX95k8tdyB7Qygd1Y8gAAJbcwACklXISXLjMPF4fUkYNgQ',
-               'CgACAgIAAxkBAAIEGWe46K9z7foe8Ok6xw_Y3v5Hm7gMAAJccwACklXIScUOj0yf8SS1NgQ',
-               'CgACAgIAAxkBAAIEG2e46Lf0_x0JvgMrm1tW3a-1B8bQAAJfcwACklXISTUBRiIrV1dsNgQ',
-               'CgACAgIAAxkBAAIEHWe46MDThj8c_fgwSa4XQMUAAZcChwACYHMAApJVyEnpFPiJ0AeJwTYE',
-               'CgACAgIAAxkBAAIEC2e458Ury_0OvDKpZVoJQZwUigSNAAJOcwACklXISaHfIDGzaMVoNgQ']
-
-zero_gif_ids = ['CgACAgIAAxkBAAID-Ge45tYeSXE6g-PtCba_36J80W3eAAJGcwACklXISX0sVKih37EuNgQ']
+def load_file_ids():
+    """Загрузка ID файлов из конфигурации"""
+    config_path = os.path.join('config', 'file_ids.json')
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 async def safe_delete_message(gif_message, retries=3, delay=1):
     """Функция для безопасного удаления сообщения с обработкой тайм-аута."""
@@ -70,12 +38,16 @@ async def handle_roulette_bet_callback(query, context: ContextTypes.DEFAULT_TYPE
     update_balance(user_id, -bet_amount)
     result = get_roulette_result()
 
+    # Загружаем ID гифок из конфига
+    file_ids = load_file_ids()
+    gif_ids = file_ids['animations']['roulette']
+
     if result == 'black':
-        gif_id = random.choice(black_gif_ids)
+        gif_id = random.choice(gif_ids['black'])
     elif result == 'red':
-        gif_id = random.choice(red_gif_ids)
+        gif_id = random.choice(gif_ids['red'])
     else:
-        gif_id = random.choice(zero_gif_ids)
+        gif_id = random.choice(gif_ids['zero'])
 
     try:
         gif_message = await query.message.chat.send_animation(gif_id)
