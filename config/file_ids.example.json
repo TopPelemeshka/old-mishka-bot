@@ -1,0 +1,21 @@
+{
+    "animations": {
+        "dice": "YOUR_DICE_GIF_ID",
+        "logout": "YOUR_LOGOUT_GIF_ID",
+        "roulette": {
+            "black": [
+                "YOUR_BLACK_1_GIF_ID",
+                "YOUR_BLACK_2_GIF_ID",
+                "YOUR_BLACK_3_GIF_ID"
+            ],
+            "zero": [
+                "YOUR_ZERO_GIF_ID"
+            ],
+            "red": [
+                "YOUR_RED_1_GIF_ID",
+                "YOUR_RED_2_GIF_ID",
+                "YOUR_RED_3_GIF_ID"
+            ]
+        }
+    }
+} 

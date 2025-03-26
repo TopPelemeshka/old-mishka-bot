@@ -1,0 +1,80 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Local configuration files
+config/bot_config.json
+config/file_ids.json
+config/paths_config.json
+config/sound_config.json
+
+# Assets and media files
+assets/
+pictures/
+sound_panel/
+
+# Database
+*.db
+*.sqlite3
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Content folders - ignore contents but not folders
+state_data/*
+!state_data/.gitkeep
+
+post_materials/*
+!post_materials/.gitkeep
+!post_materials/*/
+post_materials/*/*
+!post_materials/*/.gitkeep
+
+# Always ignore specific files in post_materials
+post_materials/anecdotes.txt
+post_materials/quiz.json
+post_materials/wisdom.json
+
+post_archive/*
+!post_archive/.gitkeep
+!post_archive/*/
+post_archive/*/*
+!post_archive/*/.gitkeep
