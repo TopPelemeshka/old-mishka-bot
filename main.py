@@ -2,6 +2,8 @@
 import logging
 import datetime
 import os
+from pathlib import Path
+import logging.handlers
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -13,12 +15,59 @@ from telegram.ext import (
 
 from telegram.ext.filters import BaseFilter
 
-# Убедитесь, что директория для логов существует
-log_dir = "logs"
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
+# Настройка логирования
+def setup_logging():
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    log_file = log_dir / "bot.log"
+    
+    # Настройка корневого логгера
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # Форматтер для логов
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    
+    # Обработчик для вывода в консоль
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    
+    # Обработчик для файла с ротацией
+    # Ротация каждые 5 МБ, храним 5 бэкапов
+    file_handler = logging.handlers.RotatingFileHandler(
+        log_file, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8'
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    
+    # Обработчик для ошибок с отдельной ротацией
+    error_log_file = log_dir / "errors.log"
+    error_handler = logging.handlers.RotatingFileHandler(
+        error_log_file, maxBytes=2*1024*1024, backupCount=3, encoding='utf-8'
+    )
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(formatter)
+    
+    # Добавляем обработчики
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
+    logger.addHandler(error_handler)
+    
+    # Устанавливаем обработчик для необработанных исключений
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        logger.error("Необработанное исключение", exc_info=(exc_type, exc_value, exc_traceback))
+    
+    import sys
+    sys.excepthook = handle_exception
+    
+    return logger
 
-from config import TOKEN, schedule_config
+# Инициализация логгера
+logger = setup_logging()
+
+from config import TOKEN, schedule_config, reload_all_configs
 from handlers.start_help import start, help_command
 from handlers.getfileid import getfileid_command, catch_animation_fileid
 from handlers.roll import roll_command, roll_callback
@@ -53,32 +102,6 @@ from casino.casino_main import casino_command, casino_callback_handler
 from casino.slots import handle_slots_bet_callback
 from casino.roulette import handle_roulette_bet_callback, handle_change_bet
 
-
-# Настройка логирования
-log_dir = "logs"
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-
-log_file = os.path.join(log_dir, "bot.log")
-
-# Настройка логирования
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)  # Уровень для всех логов (для вывода в консоль)
-
-# Обработчик для вывода в консоль (все логи)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)  # Все логи будут выводиться в консоль
-console_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-
-# Обработчик для записи в файл (только предупреждения и выше)
-file_handler = logging.FileHandler(log_file)
-file_handler.setLevel(logging.WARNING)  # В файл пишем только WARNING и выше
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-
-# Добавляем обработчики
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
-
 class MediaCommandFilter(BaseFilter):
     def check_update(self, update):
         message = update.effective_message
@@ -88,6 +111,11 @@ class MediaCommandFilter(BaseFilter):
         if (message.photo or message.video or message.audio) and message.caption:
             return message.caption.startswith("/post")
         return False
+
+# Добавим обработчик команды для перезагрузки конфигураций
+async def reload_config_command(update, context):
+    reload_all_configs()
+    await update.message.reply_text("Конфигурации перезагружены!")
 
 def main() -> None:
     app = ApplicationBuilder().token(TOKEN).build()
@@ -139,6 +167,9 @@ def main() -> None:
     app.add_handler(CommandHandler("sleep", sleep_command))
 
     app.add_handler(CommandHandler("logout", logout_command))
+
+    # Команда для перезагрузки конфигураций
+    app.add_handler(CommandHandler("reload_config", reload_config_command))
 
     # Команда /balance
     app.add_handler(CommandHandler("balance", balance_command))
