@@ -2,6 +2,8 @@
 import os
 import random
 import shutil
+import logging
+from pathlib import Path
 
 SEPARATOR = "=================================================="
 
@@ -25,6 +27,8 @@ from config import (
     ARCHIVE_VIDEO_AUTO_DIR,
 )
 
+logger = logging.getLogger(__name__)
+
 def is_valid_file(file_path):
     """
     Проверяет, что файл подходит для отправки в Telegram.
@@ -33,110 +37,181 @@ def is_valid_file(file_path):
     - Не быть .gitkeep
     - Не быть пустым
     - Иметь допустимое расширение
+    - Быть доступным для чтения
     """
-    # Проверка, что это не .gitkeep
-    if file_path.endswith('.gitkeep'):
+    try:
+        # Проверка, что это не .gitkeep
+        if os.path.basename(file_path) == '.gitkeep':
+            logger.warning(f"Файл {file_path} является .gitkeep")
+            return False
+        
+        # Проверка, что файл существует
+        if not os.path.exists(file_path):
+            logger.warning(f"Файл {file_path} не существует")
+            return False
+        
+        # Проверка, что файл не пустой
+        if os.path.getsize(file_path) == 0:
+            logger.warning(f"Файл {file_path} пустой")
+            return False
+        
+        # Проверка, что файл доступен для чтения
+        if not os.access(file_path, os.R_OK):
+            logger.warning(f"Файл {file_path} недоступен для чтения")
+            return False
+        
+        # Проверка размера файла (не более 50 МБ для видео, Telegram ограничение)
+        max_size = 50 * 1024 * 1024  # 50 МБ в байтах
+        if os.path.getsize(file_path) > max_size:
+            logger.warning(f"Файл {file_path} превышает максимальный размер 50 МБ")
+            return False
+        
+        # Проверка расширения
+        valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.webm', '.webp']
+        ext = os.path.splitext(file_path)[1].lower()
+        if ext not in valid_extensions:
+            logger.warning(f"Файл {file_path} имеет недопустимое расширение {ext}")
+            return False
+        
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка при проверке файла {file_path}: {str(e)}")
         return False
-    
-    # Проверка, что файл существует
-    if not os.path.exists(file_path):
-        return False
-    
-    # Проверка, что файл не пустой
-    if os.path.getsize(file_path) == 0:
-        return False
-    
-    # Проверка расширения
-    valid_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.mp4', '.webm', '.webp']
-    ext = os.path.splitext(file_path)[1].lower()
-    return ext in valid_extensions
 
 def get_top_anecdote_and_remove():
     """Возвращает случайный анекдот из файла и удаляет его из файла."""
-    if not os.path.exists(ANECDOTES_FILE):
+    try:
+        if not os.path.exists(ANECDOTES_FILE):
+            logger.warning(f"Файл анекдотов {ANECDOTES_FILE} не существует")
+            return None
+
+        with open(ANECDOTES_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+
+        if not content:
+            logger.warning(f"Файл анекдотов {ANECDOTES_FILE} пуст")
+            return None
+
+        # Разбиваем контент на отдельные анекдоты по разделителю
+        parts = [x.strip() for x in content.split(SEPARATOR) if x.strip()]
+        if not parts:
+            logger.warning(f"В файле анекдотов {ANECDOTES_FILE} нет анекдотов")
+            return None
+
+        # Выбираем случайный индекс
+        idx = random.randint(0, len(parts) - 1)
+        anecdote = parts.pop(idx)
+
+        # Сохраняем оставшиеся анекдоты обратно в файл
+        remaining_str = f"\n{SEPARATOR}\n".join(parts)
+        with open(ANECDOTES_FILE, "w", encoding="utf-8") as f:
+            f.write(remaining_str.strip())
+
+        return anecdote
+    except Exception as e:
+        logger.error(f"Ошибка при получении анекдота: {str(e)}")
         return None
-
-    with open(ANECDOTES_FILE, "r", encoding="utf-8") as f:
-        content = f.read().strip()
-
-    if not content:
-        return None
-
-    # Разбиваем контент на отдельные анекдоты по разделителю
-    parts = [x.strip() for x in content.split(SEPARATOR) if x.strip()]
-    if not parts:
-        return None
-
-    # Выбираем случайный индекс
-    idx = random.randint(0, len(parts) - 1)
-    anecdote = parts.pop(idx)
-
-    # Сохраняем оставшиеся анекдоты обратно в файл
-    remaining_str = f"\n{SEPARATOR}\n".join(parts)
-    with open(ANECDOTES_FILE, "w", encoding="utf-8") as f:
-        f.write(remaining_str.strip())
-
-    return anecdote
 
 
 def count_anecdotes():
     """Подсчитать количество оставшихся анекдотов."""
-    if not os.path.exists(ANECDOTES_FILE):
+    try:
+        if not os.path.exists(ANECDOTES_FILE):
+            return 0
+        with open(ANECDOTES_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+        if not content:
+            return 0
+        parts = [x.strip() for x in content.split(SEPARATOR) if x.strip()]
+        return len(parts)
+    except Exception as e:
+        logger.error(f"Ошибка при подсчете анекдотов: {str(e)}")
         return 0
-    with open(ANECDOTES_FILE, "r", encoding="utf-8") as f:
-        content = f.read().strip()
-    if not content:
-        return 0
-    parts = [x.strip() for x in content.split(SEPARATOR) if x.strip()]
-    return len(parts)
 
 def get_random_file_from_folder(folder):
     """Вернуть путь к случайному файлу из папки."""
-    if not os.path.exists(folder):
+    try:
+        if not folder or not os.path.exists(folder) or not os.path.isdir(folder):
+            logger.warning(f"Директория {folder} не существует или не является директорией")
+            return None
+        
+        # Получаем список файлов и фильтруем только валидные
+        all_files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
+        valid_files = [os.path.join(folder, f) for f in all_files if is_valid_file(os.path.join(folder, f))]
+        
+        if not valid_files:
+            logger.warning(f"В директории {folder} нет валидных файлов")
+            return None
+        
+        return random.choice(valid_files)
+    except Exception as e:
+        logger.error(f"Ошибка при получении случайного файла из {folder}: {str(e)}")
         return None
-    
-    # Получаем список файлов и фильтруем только валидные
-    all_files = [f for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f))]
-    valid_files = [os.path.join(folder, f) for f in all_files if is_valid_file(os.path.join(folder, f))]
-    
-    if not valid_files:
-        return None
-    
-    return random.choice(valid_files)
 
 def move_file_to_archive(filepath, category):
     """Перенести файл в архивную папку соответствующей категории."""
-    if category == "ero-anime":
-        archive_dir = ARCHIVE_ERO_ANIME_DIR
-    elif category == "ero-real":
-        archive_dir = ARCHIVE_ERO_REAL_DIR
-    elif category == "single-meme":
-        archive_dir = ARCHIVE_SINGLE_MEME_DIR
-    elif category == "standart-art":
-        archive_dir = ARCHIVE_STANDART_ART_DIR
-    elif category == "standart-meme":
-        archive_dir = ARCHIVE_STANDART_MEME_DIR
-    elif category == "video-meme":
-        archive_dir = ARCHIVE_VIDEO_MEME_DIR
-    elif category == "video-ero":
-        archive_dir = ARCHIVE_VIDEO_ERO_DIR
-    elif category == "video-auto":
-        archive_dir = ARCHIVE_VIDEO_AUTO_DIR
-    else:
-        # Для прочих категорий, если появятся
-        archive_dir = os.path.join("archive", category)
+    try:
+        if not os.path.exists(filepath):
+            logger.warning(f"Не удалось переместить файл {filepath} в архив: файл не существует")
+            return False
+            
+        if category == "ero-anime":
+            archive_dir = ARCHIVE_ERO_ANIME_DIR
+        elif category == "ero-real":
+            archive_dir = ARCHIVE_ERO_REAL_DIR
+        elif category == "single-meme":
+            archive_dir = ARCHIVE_SINGLE_MEME_DIR
+        elif category == "standart-art":
+            archive_dir = ARCHIVE_STANDART_ART_DIR
+        elif category == "standart-meme":
+            archive_dir = ARCHIVE_STANDART_MEME_DIR
+        elif category == "video-meme":
+            archive_dir = ARCHIVE_VIDEO_MEME_DIR
+        elif category == "video-ero":
+            archive_dir = ARCHIVE_VIDEO_ERO_DIR
+        elif category == "video-auto":
+            archive_dir = ARCHIVE_VIDEO_AUTO_DIR
+        else:
+            # Для прочих категорий, если появятся
+            archive_dir = os.path.join("archive", category)
 
-    os.makedirs(archive_dir, exist_ok=True)
+        # Создаем директорию архива, если она не существует
+        os.makedirs(archive_dir, exist_ok=True)
 
-    basename = os.path.basename(filepath)
-    new_path = os.path.join(archive_dir, basename)
-    shutil.move(filepath, new_path)
+        basename = os.path.basename(filepath)
+        new_path = os.path.join(archive_dir, basename)
+        
+        # Проверяем, существует ли уже файл с таким именем в архиве
+        if os.path.exists(new_path):
+            # Добавляем к имени файла временную метку
+            base, ext = os.path.splitext(basename)
+            import time
+            timestamp = int(time.time())
+            new_basename = f"{base}_{timestamp}{ext}"
+            new_path = os.path.join(archive_dir, new_basename)
+            
+        # Перемещаем файл в архив
+        shutil.move(filepath, new_path)
+        logger.info(f"Файл {filepath} перемещен в архив: {new_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Ошибка при перемещении файла {filepath} в архив {archive_dir}: {str(e)}")
+        return False
 
 def count_files_in_folder(folder):
     """Подсчитать число файлов (только файлы) в папке."""
-    if not os.path.exists(folder):
+    try:
+        if not folder or not os.path.exists(folder):
+            logger.warning(f"Директория {folder} не существует")
+            return 0
+        
+        # Подсчитываем только валидные файлы (не .gitkeep и т.д.)
+        valid_files = [f for f in os.listdir(folder) 
+                      if os.path.isfile(os.path.join(folder, f)) and is_valid_file(os.path.join(folder, f))]
+        return len(valid_files)
+    except Exception as e:
+        logger.error(f"Ошибка при подсчете файлов в директории {folder}: {str(e)}")
         return 0
-    return sum(1 for f in os.listdir(folder) if os.path.isfile(os.path.join(folder, f)))
 
 def get_available_stats():
     """
