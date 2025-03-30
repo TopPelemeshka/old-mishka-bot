@@ -1,4 +1,12 @@
 # utils_autopost.py
+"""
+Модуль вспомогательных функций для автоматической публикации контента.
+Обеспечивает:
+- Работу с файлами контента (картинки, видео)
+- Управление анекдотами
+- Перемещение использованного контента в архив
+- Статистику и предсказание возможного количества публикаций
+"""
 import os
 import random
 import shutil
@@ -38,6 +46,13 @@ def is_valid_file(file_path):
     - Не быть пустым
     - Иметь допустимое расширение
     - Быть доступным для чтения
+    - Не превышать ограничение Telegram по размеру (50 МБ)
+    
+    Args:
+        file_path: Путь к проверяемому файлу
+        
+    Returns:
+        bool: True если файл валидный, False в противном случае
     """
     try:
         # Проверка, что это не .gitkeep
@@ -79,7 +94,13 @@ def is_valid_file(file_path):
         return False
 
 def get_top_anecdote_and_remove():
-    """Возвращает случайный анекдот из файла и удаляет его из файла."""
+    """
+    Возвращает случайный анекдот из файла и удаляет его из файла.
+    Анекдоты в файле разделены строкой-разделителем SEPARATOR.
+    
+    Returns:
+        str|None: Текст анекдота или None, если анекдотов нет или произошла ошибка
+    """
     try:
         if not os.path.exists(ANECDOTES_FILE):
             logger.warning(f"Файл анекдотов {ANECDOTES_FILE} не существует")
@@ -114,7 +135,12 @@ def get_top_anecdote_and_remove():
 
 
 def count_anecdotes():
-    """Подсчитать количество оставшихся анекдотов."""
+    """
+    Подсчитывает количество оставшихся анекдотов в файле.
+    
+    Returns:
+        int: Количество анекдотов или 0, если файла нет или произошла ошибка
+    """
     try:
         if not os.path.exists(ANECDOTES_FILE):
             return 0
@@ -129,7 +155,16 @@ def count_anecdotes():
         return 0
 
 def get_random_file_from_folder(folder):
-    """Вернуть путь к случайному файлу из папки."""
+    """
+    Возвращает путь к случайному файлу из указанной папки.
+    Выбираются только валидные файлы (проверка через is_valid_file).
+    
+    Args:
+        folder: Путь к папке, из которой нужно выбрать файл
+        
+    Returns:
+        str|None: Путь к случайному файлу или None, если папка пуста или произошла ошибка
+    """
     try:
         if not folder or not os.path.exists(folder) or not os.path.isdir(folder):
             logger.warning(f"Директория {folder} не существует или не является директорией")
@@ -149,12 +184,22 @@ def get_random_file_from_folder(folder):
         return None
 
 def move_file_to_archive(filepath, category):
-    """Перенести файл в архивную папку соответствующей категории."""
+    """
+    Перемещает использованный файл в соответствующую архивную папку.
+    
+    Args:
+        filepath: Путь к файлу, который нужно переместить
+        category: Категория файла (ero-anime, ero-real, standart-meme и т.д.)
+        
+    Returns:
+        bool: True если перемещение успешно, False в случае ошибки
+    """
     try:
         if not os.path.exists(filepath):
             logger.warning(f"Не удалось переместить файл {filepath} в архив: файл не существует")
             return False
             
+        # Определяем архивную директорию на основе категории
         if category == "ero-anime":
             archive_dir = ARCHIVE_ERO_ANIME_DIR
         elif category == "ero-real":

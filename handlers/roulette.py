@@ -1,4 +1,9 @@
 # handlers/roulette.py
+"""
+Модуль обработчика команды /roulette - интерактивная текстовая рулетка с выбором.
+Реализует функциональность для выбора случайного варианта из списка,
+предоставленного пользователем, с возможностью последовательного исключения вариантов.
+"""
 import random
 from telegram import (
     Update,
@@ -10,6 +15,16 @@ from utils import check_chat_and_execute
 from state import ROULETTE_DATA
 
 def format_roulette_list(roulette_dict: dict) -> str:
+    """
+    Форматирует список вариантов для отображения в сообщении.
+    Зачеркивает уже удалённые варианты.
+    
+    Args:
+        roulette_dict: Словарь с данными рулетки
+        
+    Returns:
+        str: Отформатированный список вариантов с HTML-разметкой
+    """
     original_list = roulette_dict["original_list"]
     removed_ids = roulette_dict["removed_list"]
     lines = []
@@ -21,6 +36,15 @@ def format_roulette_list(roulette_dict: dict) -> str:
     return "\n".join(lines)
 
 def build_roulette_keyboard(roulette_dict: dict) -> InlineKeyboardMarkup:
+    """
+    Создает клавиатуру с кнопками для взаимодействия с рулеткой.
+    
+    Args:
+        roulette_dict: Словарь с данными рулетки
+        
+    Returns:
+        InlineKeyboardMarkup: Клавиатура с кнопками "Крутить" и "Начать заново"
+    """
     current_list = roulette_dict["current_list"]
     if len(current_list) > 1:
         keyboard = [
@@ -38,6 +62,14 @@ def build_roulette_keyboard(roulette_dict: dict) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(keyboard)
 
 async def roulette_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды /roulette.
+    Создает интерактивную рулетку с указанными пользователем вариантами.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     async def _roulette_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = update.message.text  # Например: "/roulette Фильм1, Фильм2, Фильм1"
         _, _, text_after_command = text.partition(" ")

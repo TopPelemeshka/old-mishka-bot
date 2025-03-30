@@ -1,4 +1,9 @@
 # balance.py
+"""
+Модуль для управления балансом монет пользователей.
+Обеспечивает сохранение, загрузку и обновление баланса пользователей,
+который используется для ставок в казино и получения наград за викторины.
+"""
 
 import os
 import json
@@ -8,9 +13,11 @@ BALANCE_FILE = "state_data/balance.json"
 
 def load_balances() -> dict:
     """
-    Считывает словарь { str(user_id): { 'balance': int, 'name': str } }
-    из файла BALANCE_FILE. Если файл пуст или не существует,
-    возвращается пустой словарь.
+    Загружает словарь балансов пользователей из файла.
+    
+    Returns:
+        dict: Словарь вида { str(user_id): { 'balance': int, 'name': str } }
+        Если файл пуст или не существует, возвращается пустой словарь.
     """
     if not os.path.exists(BALANCE_FILE):
         return {}
@@ -26,6 +33,9 @@ def load_balances() -> dict:
 def save_balances(balances: dict):
     """
     Сохраняет словарь балансов в файл BALANCE_FILE.
+    
+    Args:
+        balances: Словарь вида { str(user_id): { 'balance': int, 'name': str } }
     """
     try:
         with open(BALANCE_FILE, "w", encoding="utf-8") as f:
@@ -35,8 +45,13 @@ def save_balances(balances: dict):
 
 def get_balance(user_id: int) -> int:
     """
-    Возвращает баланс пользователя по его user_id.
-    Если записи нет, вернёт 0.
+    Возвращает текущий баланс пользователя.
+    
+    Args:
+        user_id: ID пользователя Telegram
+        
+    Returns:
+        int: Текущий баланс пользователя или 0, если пользователь не найден
     """
     data = load_balances()
     user_id_str = str(user_id)
@@ -48,13 +63,21 @@ def get_balance(user_id: int) -> int:
 
 def update_balance(user_id: int, delta: int):
     """
-    Изменяет баланс пользователя (прибавляет delta) по его user_id.
-    Может быть отрицательным, тогда баланс уменьшится.
+    Изменяет баланс пользователя на указанную величину.
+    
+    Args:
+        user_id: ID пользователя Telegram
+        delta: Изменение баланса (положительное или отрицательное число)
+        
+    Note:
+        Если delta отрицательная и превышает текущий баланс, баланс будет установлен на 0.
+        Если пользователь не существует, будет создана новая запись.
     """
     data = load_balances()  # Загружаем все данные
     user_id_str = str(user_id)
     
     if user_id_str in data:
+        # Обновляем баланс существующего пользователя
         current_balance = data[user_id_str].get("balance", 0)
         new_balance = current_balance + delta
         if new_balance < 0:

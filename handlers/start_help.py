@@ -1,9 +1,21 @@
 # handlers/start_help.py
+"""
+Модуль обработчиков команд приветствия и помощи.
+Содержит обработчики для команд /start и /help, которые
+показывают приветственное сообщение и справку по командам бота.
+"""
 from telegram import Update
 from telegram.ext import ContextTypes
 from utils import check_chat_and_execute
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик команды /start - отправляет приветственное сообщение.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     async def _start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = (
             "👋 Привет, дружище!\n\n"
@@ -20,6 +32,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик команды /help - отправляет справку по доступным командам бота.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     async def _help(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text = (
             "📖 <b>Справка по командам бота</b> 📖\n\n"

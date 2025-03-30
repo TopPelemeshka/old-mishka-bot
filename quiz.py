@@ -1,4 +1,12 @@
 # quiz.py
+"""
+Модуль для проведения викторин (квизов) в Telegram-чате.
+Обеспечивает:
+- Загрузку и сохранение вопросов
+- Генерацию случайных вопросов
+- Отслеживание рейтинга участников
+- Еженедельное обновление викторин
+"""
 
 import os
 import json
@@ -31,6 +39,9 @@ def load_weekly_quiz_count() -> int:
     """
     Загружает количество вопросов викторины за неделю из WEEKLY_COUNT_FILE.
     Если файла нет или он некорректный, возвращает 0.
+    
+    Returns:
+        int: Количество вопросов за текущую неделю
     """
     if not os.path.exists(WEEKLY_COUNT_FILE):
         return 0
@@ -46,6 +57,9 @@ def load_weekly_quiz_count() -> int:
 def save_weekly_quiz_count(count: int):
     """
     Сохраняет количество вопросов викторины за неделю в WEEKLY_COUNT_FILE.
+    
+    Args:
+        count: Количество вопросов для сохранения
     """
     with open(WEEKLY_COUNT_FILE, "w", encoding="utf-8") as f:
         json.dump({"count": count}, f, ensure_ascii=False, indent=4)
@@ -62,6 +76,9 @@ def load_quiz_questions() -> list[dict]:
         },
         ...
     ]
+    
+    Returns:
+        list[dict]: Список словарей с вопросами, вариантами ответов и правильным ответом
     """
     if not os.path.exists(QUIZ_FILE):
         return []
@@ -76,7 +93,12 @@ def load_quiz_questions() -> list[dict]:
 
 
 def save_quiz_questions(questions: list[dict]):
-    """Перезаписывает файл quiz.json."""
+    """
+    Перезаписывает файл quiz.json.
+    
+    Args:
+        questions: Список словарей с вопросами для сохранения
+    """
     with open(QUIZ_FILE, "w", encoding="utf-8") as f:
         json.dump(questions, f, ensure_ascii=False, indent=4)
 
@@ -85,7 +107,9 @@ def get_random_question() -> dict | None:
     """
     Возвращает случайный вопрос из quiz.json и удаляет его из файла,
     чтобы не повторялся.
-    Если вопросов нет – возвращает None.
+    
+    Returns:
+        dict|None: Словарь с вопросом или None, если вопросов нет
     """
     questions = load_quiz_questions()
     if not questions:
@@ -98,12 +122,15 @@ def get_random_question() -> dict | None:
 
 def load_rating() -> dict:
     """
-    Возвращает словарь вида:
-      {
-         "123456789": { "stars": 3, "name": "username_или_имя" },
-         "987654321": { "stars": 1, "name": "другое_имя" }
-      }
-    Если файл пуст или отсутствует — вернёт пустой словарь.
+    Загружает рейтинг участников викторины.
+    
+    Returns:
+        dict: Словарь вида:
+          {
+             "123456789": { "stars": 3, "name": "username_или_имя" },
+             "987654321": { "stars": 1, "name": "другое_имя" }
+          }
+        Если файл пуст или отсутствует — вернёт пустой словарь.
     """
     if not os.path.exists(RATING_FILE):
         return {}
@@ -118,7 +145,10 @@ def load_rating() -> dict:
 def save_rating(rating: dict):
     """
     Сохраняет рейтинг в JSON-файл.
-    Параметр rating — dict[user_id_str] = { "stars": int, "name": str }
+    
+    Args:
+        rating: Словарь вида:
+            dict[user_id_str] = { "stars": int, "name": str }
     """
     try:
         with open(RATING_FILE, "w", encoding="utf-8") as f:
@@ -130,8 +160,10 @@ def save_rating(rating: dict):
 
 def load_praises() -> list[str]:
     """
-    Считывает все строки из praises.txt (или файла по вашему желанию).
-    Можно хранить по одной похвале на строку (или через разделитель).
+    Считывает фразы похвалы из файла.
+    
+    Returns:
+        list[str]: Список строк с фразами похвалы
     """
     if not os.path.exists(PRAISES_FILE):
         return ["Поздравляем! Ты великолепен!", "Блестящая победа!"]
@@ -142,8 +174,10 @@ def load_praises() -> list[str]:
 
 def load_praise_index() -> int:
     """
-    Возвращает текущее значение индекса (int) из файла.
-    Если файла нет – возвращаем 0.
+    Загружает текущий индекс для циклического выбора фраз похвалы.
+    
+    Returns:
+        int: Текущий индекс или 0, если файла нет
     """
     if not os.path.exists(PRAISE_INDEX_FILE):
         return 0
@@ -157,7 +191,12 @@ def load_praise_index() -> int:
     return 0
 
 def save_praise_index(index: int):
-    """Сохраняем текущее значение индекса в файл."""
+    """
+    Сохраняет текущий индекс фразы похвалы.
+    
+    Args:
+        index: Индекс последней использованной фразы
+    """
     with open(PRAISE_INDEX_FILE, "w", encoding="utf-8") as f:
         json.dump({"praise_index": index}, f, ensure_ascii=False, indent=4)
 
@@ -165,6 +204,12 @@ def get_next_praise(praises: list[str]) -> str:
     """
     Возвращает очередную фразу из списка `praises` по циклу.
     Состояние (индекс) хранится в praise_state.json.
+    
+    Args:
+        praises: Список фраз похвалы
+    
+    Returns:
+        str: Следующая фраза похвалы
     """
     if not praises:
         return "Поздравляем! (нет фраз в praises)"
@@ -178,6 +223,13 @@ def get_next_praise(praises: list[str]) -> str:
 
 
 async def quiz_post_callback(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Callback-функция для публикации нового вопроса викторины.
+    Вызывается по расписанию.
+    
+    Args:
+        context: Контекст от планировщика задач Telegram
+    """
     # Добавляем проверку флага викторины:
     if not state.quiz_enabled:
         return
@@ -194,6 +246,7 @@ async def quiz_post_callback(context: ContextTypes.DEFAULT_TYPE):
     original_options = question_data["options"]
     correct_answer = question_data["answer"]
 
+    # Перемешиваем варианты ответов для непредсказуемости
     shuffled_options = original_options[:]
     random.shuffle(shuffled_options)
     try:

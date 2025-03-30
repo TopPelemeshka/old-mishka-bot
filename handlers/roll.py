@@ -1,4 +1,8 @@
 # handlers/roll.py
+"""
+Модуль для обработки команды /roll - бросок виртуального кубика.
+Поддерживает кубики с любым количеством граней и возможность перебросить результат.
+"""
 import random
 import time
 import asyncio
@@ -16,9 +20,18 @@ from config import DICE_GIF_ID, COOLDOWN
 from state import last_roll_time
 
 async def roll_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик команды /roll - бросок виртуального кубика.
+    Поддерживает указание максимального числа через аргумент, например "/roll 20".
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика с аргументами команды
+    """
     async def _roll_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         now = time.time()
+        # Проверка кулдауна между бросками
         if user_id in last_roll_time:
             diff = now - last_roll_time[user_id]
             if diff < COOLDOWN:
@@ -31,6 +44,7 @@ async def roll_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
         args = context.args
         try:
+            # Определяем максимальное число на кубике (по умолчанию 6)
             max_number = int(args[0]) if args else 6
             if max_number < 1:
                 await context.bot.send_message(
@@ -52,15 +66,19 @@ async def roll_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
             return
 
+        # Отправляем анимацию броска кубика
         msg = await context.bot.send_animation(
             chat_id=update.effective_chat.id,
             animation=DICE_GIF_ID,
             caption="Кубик катится... 🎲"
         )
 
+        # Имитация задержки при броске
         await asyncio.sleep(1)
 
+        # Генерация случайного результата
         result = random.randint(1, max_number)
+        # Создаем кнопку для переброса
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(
                 "Перебросить (0)",
@@ -68,6 +86,7 @@ async def roll_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )]
         ])
 
+        # Обновляем сообщение с результатом броска
         with open("pictures/dice_result.png", "rb") as image_file:
             new_caption = (
                 f"🎲 Результат: {result} (из {max_number})\n"
@@ -83,11 +102,20 @@ async def roll_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await check_chat_and_execute(update, context, _roll_command)
 
 async def roll_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик для кнопки переброса кубика.
+    Обновляет сообщение с новым случайным результатом и увеличивает счетчик перебросов.
+    
+    Args:
+        update: Объект обновления от Telegram (содержит callback_query)
+        context: Контекст обработчика
+    """
     query = update.callback_query
     await query.answer()
 
     user_id = query.from_user.id
     now = time.time()
+    # Проверка кулдауна между перебросами
     if user_id in last_roll_time:
         diff = now - last_roll_time[user_id]
         if diff < COOLDOWN:
@@ -98,6 +126,7 @@ async def roll_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             return
     last_roll_time[user_id] = now
 
+    # Разбор данных из callback_query
     data = query.data
     prefix, max_num_str, reroll_count_str = data.split("|")
     max_number = int(max_num_str)
@@ -108,6 +137,7 @@ async def roll_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await query.answer("Нет file_id! Сначала сделайте /getfileid.")
         return
 
+    # Обновляем сообщение анимацией броска
     media_animation = InputMediaAnimation(
         media=DICE_GIF_ID,
         caption="Кубик катится... 🎲"
@@ -117,9 +147,12 @@ async def roll_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         reply_markup=None
     )
 
+    # Имитация задержки при броске
     await asyncio.sleep(1)
 
+    # Генерация нового случайного результата
     result = random.randint(1, max_number)
+    # Обновляем кнопку с новым счетчиком перебросов
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton(
             f"Перебросить ({new_reroll_count})",
@@ -127,6 +160,7 @@ async def roll_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         )]
     ])
 
+    # Обновляем сообщение с новым результатом
     with open("pictures/dice_result.png", "rb") as image_file:
         new_text = (
             f"🎲 Результат: {result} (из {max_number})\n"

@@ -1,4 +1,12 @@
 # autopost.py
+"""
+Модуль для автоматической публикации контента в Telegram канале/группе.
+Обеспечивает функционал:
+- Автоматическая публикация постов с изображениями и анекдотами
+- Автоматическая публикация видеоконтента
+- Планирование постов по расписанию
+- Отслеживание статистики публикаций
+"""
 import datetime
 import random
 import logging
@@ -28,7 +36,15 @@ import state
 logger = logging.getLogger(__name__)
 
 def _get_folder_by_category(category: str):
-    """Вспомогательная функция для выбора папки по названию категории."""
+    """
+    Вспомогательная функция для выбора папки по названию категории.
+    
+    Args:
+        category: Строка с названием категории контента
+        
+    Returns:
+        Путь к директории с соответствующим контентом или None если категория не найдена
+    """
     from config import (
         ERO_ANIME_DIR,
         ERO_REAL_DIR,
@@ -59,6 +75,13 @@ def _get_folder_by_category(category: str):
 
 
 async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Callback-функция для публикации поста с 10 изображениями и анекдотом.
+    Выбирает изображения из разных категорий согласно заданному списку.
+    
+    Args:
+        context: Контекст от планировщика задач Telegram
+    """
     if not state.autopost_enabled:
         return
     categories = [
@@ -84,6 +107,7 @@ async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
 
     for cat in categories:
         if "/" in cat:
+            # Если указана альтернатива через слеш, пробуем первую категорию, а если не выйдет - вторую
             cat1, cat2 = cat.split("/")
             file_path = get_random_file_from_folder(_get_folder_by_category(cat1))
             if file_path is None:
@@ -118,11 +142,13 @@ async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
         used_files.append((file_path, real_cat))
 
     try:
+        # Отправляем медиагруппу из 10 изображений
         await context.bot.send_media_group(
             chat_id=POST_CHAT_ID,
             media=media,
             read_timeout=180
         )
+        # Отправляем анекдот отдельным сообщением
         await context.bot.send_message(
             chat_id=POST_CHAT_ID,
             text=anecdote,
@@ -137,15 +163,20 @@ async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # Перемещаем использованные файлы в архив
     for path, cat in used_files:
         move_file_to_archive(path, cat)
 
 
 async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
-    """Пост с 3 видео (по одному из разных категорий) и анекдотом.
+    """
+    Пост с 3 видео (по одному из разных категорий) и анекдотом.
     
     Если нет видео из категории video-auto или video-ero,
     то вместо него используется видео из video-meme.
+    
+    Args:
+        context: Контекст от планировщика задач Telegram
     """
     if not state.autopost_enabled:
         return

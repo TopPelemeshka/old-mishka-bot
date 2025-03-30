@@ -1,4 +1,11 @@
 # handlers/coffee_mishka.py
+"""
+Модуль обработчиков для развлекательных команд бота.
+Содержит обработчики для команд:
+- /coffee - Отправляет изображение кофе (с пасхалкой при частом вызове)
+- /mishka - Отправляет изображение мишки (аватар бота)
+- /durka - Отправляет юмористическое изображение
+"""
 import logging
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -11,6 +18,16 @@ logger = logging.getLogger(__name__)
 coffee_invocations = []
 
 async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды /coffee - отправляет изображение кофе.
+    
+    Имеет пасхалку: если команду вызвать несколько раз за короткий 
+    промежуток времени (10 секунд), отправляет специальное изображение.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     global coffee_invocations
     now = time.time()
     # Оставляем в списке только вызовы за последние 10 секунд
@@ -38,6 +55,13 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await check_chat_and_execute(update, context, _coffee_command)
 
 async def mishka_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды /mishka - отправляет изображение мишки (аватар бота).
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     async def _mishka_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open("pictures/mishka.jpg", "rb") as mf:
             await context.bot.send_photo(
@@ -48,6 +72,13 @@ async def mishka_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await check_chat_and_execute(update, context, _mishka_command)
 
 async def durka_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды /durka - отправляет юмористическое изображение.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     async def _durka_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open("pictures/durka.jpg", "rb") as cf:
             await context.bot.send_photo(

@@ -1,3 +1,8 @@
+"""
+Модуль рулетки для казино бота.
+Реализует игру в рулетку с возможностью ставок на красное, черное или зеро,
+а также отображением анимации результата и расчетом выигрыша.
+"""
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 import asyncio
@@ -10,13 +15,25 @@ import json
 import os
 
 def load_file_ids():
-    """Загрузка ID файлов из конфигурации"""
+    """
+    Загрузка ID файлов анимаций из конфигурации.
+    
+    Returns:
+        dict: Словарь с идентификаторами файлов для разных типов анимаций
+    """
     config_path = os.path.join('config', 'file_ids.json')
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 async def safe_delete_message(gif_message, retries=3, delay=1):
-    """Функция для безопасного удаления сообщения с обработкой тайм-аута."""
+    """
+    Функция для безопасного удаления сообщения с обработкой тайм-аута.
+    
+    Args:
+        gif_message: Сообщение, которое нужно удалить
+        retries (int): Количество попыток удаления
+        delay (int): Задержка между попытками в секундах
+    """
     for _ in range(retries):
         try:
             await gif_message.delete()
@@ -27,6 +44,15 @@ async def safe_delete_message(gif_message, retries=3, delay=1):
     print("Не удалось удалить сообщение после нескольких попыток.")
 
 async def handle_roulette_bet_callback(query, context: ContextTypes.DEFAULT_TYPE, bet_type: str):
+    """
+    Обработчик ставки в рулетке. Вычитает ставку из баланса, 
+    запускает анимацию, определяет результат и обновляет баланс в случае выигрыша.
+    
+    Args:
+        query: Объект callback-запроса от кнопки
+        context: Контекст обработчика
+        bet_type (str): Тип ставки ('red', 'black', 'zero')
+    """
     bet_amount = int(query.data.split(":")[-1])  
     user_id = query.from_user.id
     bal = get_balance(user_id)
@@ -91,6 +117,14 @@ async def handle_roulette_bet_callback(query, context: ContextTypes.DEFAULT_TYPE
 
 
 async def handle_roulette_bet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик запуска игры в рулетку.
+    Показывает меню выбора ставки (черное, красное, зеро) и сумму ставки.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     user_id = update.effective_user.id
     bal = get_balance(user_id)
     min_bet = 5
@@ -139,6 +173,14 @@ async def handle_roulette_bet(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def handle_change_bet(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик изменения суммы ставки в рулетке.
+    Увеличивает или уменьшает ставку на 5 монет в пределах доступного баланса.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     user_id = update.effective_user.id
     bal = get_balance(user_id)
     min_bet = 5

@@ -1,4 +1,9 @@
 # config.py
+"""
+Модуль конфигурации телеграм-бота.
+Обеспечивает загрузку настроек из JSON-файлов с оптимизацией через кэширование.
+Предоставляет глобальные переменные для удобного доступа к настройкам.
+"""
 
 import json
 import os
@@ -7,8 +12,8 @@ from pathlib import Path
 from functools import lru_cache
 
 # Кэш для конфигураций и время их последнего изменения
-_config_cache = {}
-_config_mtime = {}
+_config_cache = {}  # Содержимое конфигурационных файлов
+_config_mtime = {}  # Время модификации файлов
 
 def load_config(config_file, use_cache=True):
     """
@@ -54,6 +59,7 @@ def reload_all_configs():
     """
     Принудительно перезагружает все конфигурации.
     Полезно вызывать при изменении конфигурационных файлов вручную.
+    Обновляет все глобальные переменные настроек.
     """
     global bot_config, paths_config, sound_config, file_ids, schedule_config
     global TOKEN, ALLOWED_CHAT_IDS, DICE_GIF_ID, COOLDOWN, MANUAL_USERNAMES, POST_CHAT_ID
@@ -104,26 +110,27 @@ def reload_all_configs():
     # Путь к файлу с анекдотами
     ANECDOTES_FILE = Path(paths_config['anecdotes_file'])
 
-# Загружаем все конфигурации
-bot_config = load_config('bot_config.json')
-paths_config = load_config('paths_config.json')
-sound_config = load_config('sound_config.json')
-file_ids = load_config('file_ids.json')
-schedule_config = load_config('schedule_config.json')
+# Загружаем все конфигурации при импорте модуля
+bot_config = load_config('bot_config.json')       # Основные настройки бота
+paths_config = load_config('paths_config.json')   # Пути к файлам и директориям
+sound_config = load_config('sound_config.json')   # Настройки звуковой панели
+file_ids = load_config('file_ids.json')           # ID файлов в Telegram
+schedule_config = load_config('schedule_config.json')  # Настройки расписания
 
-# Экспортируем переменные для обратной совместимости
-TOKEN = bot_config['token']
-ALLOWED_CHAT_IDS = bot_config['allowed_chat_ids']
-DICE_GIF_ID = file_ids['animations']['dice']
-COOLDOWN = bot_config['cooldown']
-MANUAL_USERNAMES = bot_config['manual_usernames']
-POST_CHAT_ID = bot_config['post_chat_id']
+# Экспортируем переменные для удобного доступа из других модулей
+# Основные настройки
+TOKEN = bot_config['token']                     # Токен бота
+ALLOWED_CHAT_IDS = bot_config['allowed_chat_ids']  # Списк разрешенных чатов
+DICE_GIF_ID = file_ids['animations']['dice']    # ID анимации кубика
+COOLDOWN = bot_config['cooldown']               # Задержка между командами
+MANUAL_USERNAMES = bot_config['manual_usernames']  # Пользователи для команды @all
+POST_CHAT_ID = bot_config['post_chat_id']       # ID чата для публикаций
 
 # Создаем базовые пути с использованием Path
-MATERIALS_DIR = Path(paths_config['materials_dir'])
-ARCHIVE_DIR = Path(paths_config['archive_dir'])
+MATERIALS_DIR = Path(paths_config['materials_dir'])  # Директория с материалами
+ARCHIVE_DIR = Path(paths_config['archive_dir'])      # Директория с архивами
 
-# Контент директории
+# Контент директории - откуда брать контент для постов
 ERO_ANIME_DIR = Path(paths_config['content_dirs']['ero_anime'])
 ERO_REAL_DIR = Path(paths_config['content_dirs']['ero_real'])
 SINGLE_MEME_DIR = Path(paths_config['content_dirs']['single_meme'])
@@ -133,7 +140,7 @@ VIDEO_MEME_DIR = Path(paths_config['content_dirs']['video_meme'])
 VIDEO_ERO_DIR = Path(paths_config['content_dirs']['video_ero'])
 VIDEO_AUTO_DIR = Path(paths_config['content_dirs']['video_auto'])
 
-# Архивные директории
+# Архивные директории - куда перемещать использованный контент
 ARCHIVE_ERO_ANIME_DIR = Path(paths_config['archive_dirs']['ero_anime'])
 ARCHIVE_ERO_REAL_DIR = Path(paths_config['archive_dirs']['ero_real'])
 ARCHIVE_SINGLE_MEME_DIR = Path(paths_config['archive_dirs']['single_meme'])

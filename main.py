@@ -1,4 +1,12 @@
 # main.py
+"""
+Основной модуль Telegram-бота с множеством функций:
+- Автопостинг медиаконтента
+- Викторины и опросы
+- Развлекательные команды (кубики, рулетка, казино)
+- Звуковая панель
+- Управление расписанием постов
+"""
 import logging
 import datetime
 import os
@@ -17,6 +25,12 @@ from telegram.ext.filters import BaseFilter
 
 # Настройка логирования
 def setup_logging():
+    """
+    Настраивает систему логирования с ротацией файлов логов:
+    - Основной лог в logs/bot.log
+    - Отдельный лог ошибок в logs/errors.log
+    - Вывод в консоль
+    """
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
     
@@ -103,6 +117,10 @@ from casino.slots import handle_slots_bet_callback
 from casino.roulette import handle_roulette_bet_callback, handle_change_bet
 
 class MediaCommandFilter(BaseFilter):
+    """
+    Фильтр для обработки команд, отправленных с медиа-вложениями.
+    Например, для команды /post с прикрепленным фото или видео.
+    """
     def check_update(self, update):
         message = update.effective_message
         if not message:
@@ -114,21 +132,28 @@ class MediaCommandFilter(BaseFilter):
 
 # Добавим обработчик команды для перезагрузки конфигураций
 async def reload_config_command(update, context):
+    """Обработчик команды для перезагрузки всех конфигураций бота"""
     reload_all_configs()
     await update.message.reply_text("Конфигурации перезагружены!")
 
 def main() -> None:
+    """
+    Основная функция, которая инициализирует бота, добавляет обработчики команд
+    и запускает опрос сервера Telegram на наличие обновлений
+    """
     app = ApplicationBuilder().token(TOKEN).build()
 
     # --- ВАЖНО ---:
     # Считываем состояние флагов до того, как отдадим бота в run_polling
     load_state()
 
-    # Команды
+    # Команды базовые
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("getfileid", getfileid_command))
     app.add_handler(MessageHandler(filters.ANIMATION, catch_animation_fileid))
+    
+    # Развлекательные команды
     app.add_handler(CommandHandler("roll", roll_command))
     app.add_handler(CallbackQueryHandler(roll_callback, pattern=r"^roll\|"))
     app.add_handler(CommandHandler("roulette", roulette_command))
@@ -140,50 +165,38 @@ def main() -> None:
     app.add_handler(CommandHandler("chatid", chatid_command))
     app.add_handler(CommandHandler("technical_work", technical_work_command))
 
-    # Новая команда для одноразовой отложенной публикации:
+    # Команды для управления постами
     app.add_handler(CommandHandler("post", schedule_post_command))
     app.add_handler(MessageHandler(MediaCommandFilter(), schedule_post_command))
-
     app.add_handler(CallbackQueryHandler(change_date_callback, pattern=r"^set_date:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, custom_date_handler))
 
+    # Команды автопостинга
     app.add_handler(CommandHandler("stop_autopost", stop_autopost_command))
     app.add_handler(CommandHandler("start_autopost", start_autopost_command))
     app.add_handler(CommandHandler("status", stats_command))
     app.add_handler(CommandHandler("jobs", next_posts_command))
 
+    # Викторины и мудрости
     app.add_handler(PollAnswerHandler(poll_answer_handler))
     app.add_handler(CommandHandler("rating", rating_command))
-    
     app.add_handler(CommandHandler("start_quiz", start_quiz_command))
     app.add_handler(CommandHandler("stop_quiz", stop_quiz_command))
-
     app.add_handler(CommandHandler("start_wisdom", start_wisdom_command))
     app.add_handler(CommandHandler("stop_wisdom", stop_wisdom_command))
 
+    # Звуковая панель и другие команды
     app.add_handler(CommandHandler("sound", sound_command))
     app.add_handler(CallbackQueryHandler(sound_callback, pattern=r"^sound:"))
-
     app.add_handler(CommandHandler("sleep", sleep_command))
-
     app.add_handler(CommandHandler("logout", logout_command))
-
-    # Команда для перезагрузки конфигураций
     app.add_handler(CommandHandler("reload_config", reload_config_command))
 
-    # Команда /balance
+    # Казино и баланс
     app.add_handler(CommandHandler("balance", balance_command))
-
-    # Команда /casino (показывает меню)
     app.add_handler(CommandHandler("casino", casino_command))
-
-    # Единый колбэк для "casino:slots" и "casino:roulette"
     app.add_handler(CallbackQueryHandler(casino_callback_handler, pattern=r"^casino:"))
-
-    # Колбэк для ставок в слотах: "slots_bet:5" и т.д.
     app.add_handler(CallbackQueryHandler(handle_slots_bet_callback, pattern=r"^slots_bet:"))
-
-    # Обработчик для ставок в рулетке (pattern изменен)
     app.add_handler(CallbackQueryHandler(
         lambda update, context: handle_roulette_bet_callback(
             update.callback_query, 
@@ -192,11 +205,10 @@ def main() -> None:
         ),
         pattern=r"^roulette_bet:"
     ))
-
-    # Добавляем обработчик для изменения ставки
     app.add_handler(CallbackQueryHandler(handle_change_bet, pattern=r"^change_bet:"))
 
 
+    # Планировщик задач
     # Назначаем "ночной" джоб для сброса расписания
     midnight_config = schedule_config['midnight_reset']
     midnight_time = parse_time_from_string(midnight_config['time'])

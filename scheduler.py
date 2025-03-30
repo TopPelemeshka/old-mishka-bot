@@ -1,3 +1,11 @@
+"""
+Модуль планировщика для автоматизации публикаций и задач.
+Обеспечивает:
+- Расписание ежедневных автоматических публикаций
+- Планирование викторин и мудрых мыслей
+- Отложенную публикацию медиа-контента по команде
+- Возможность указания произвольной даты для публикации
+"""
 import datetime
 import random
 import logging
@@ -27,6 +35,9 @@ async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
     При старте бота проходит по отложенным публикациям:
     - если время публикации прошло, публикует их сразу;
     - если ещё не наступило – планирует задачу (run_once) на нужное время.
+    
+    Args:
+        context: Контекст от планировщика задач Telegram
     """
     scheduled_posts = load_scheduled_posts()
     now = datetime.datetime.now()
@@ -75,6 +86,12 @@ async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
 
 
 def load_scheduled_posts() -> dict:
+    """
+    Загружает словарь отложенных публикаций из JSON файла.
+    
+    Returns:
+        dict: Словарь с данными отложенных публикаций или пустой словарь, если файл не существует
+    """
     if not SCHEDULED_POSTS_FILE.exists():
         return {}
     try:
@@ -88,6 +105,12 @@ def load_scheduled_posts() -> dict:
 
 
 def save_scheduled_posts(data: dict):
+    """
+    Сохраняет словарь отложенных публикаций в JSON файл.
+    
+    Args:
+        data: Словарь с данными отложенных публикаций
+    """
     try:
         # Создаем родительский каталог, если он не существует
         SCHEDULED_POSTS_FILE.parent.mkdir(exist_ok=True, parents=True)
@@ -103,6 +126,13 @@ def save_scheduled_posts(data: dict):
 #
 
 def schedule_autopost_for_today(job_queue):
+    """
+    Планирует автоматические публикации на сегодня согласно расписанию из конфигурации.
+    Включает утренние картинки, дневные видео, дневные и вечерние картинки.
+    
+    Args:
+        job_queue: Очередь задач планировщика Telegram
+    """
     # Расписание утренних картинок
     morning_config = schedule_config['autopost']['morning_pics']
     start_time = parse_time_from_string(morning_config['time_range']['start'])
@@ -153,6 +183,13 @@ def schedule_autopost_for_today(job_queue):
 
 
 def schedule_quizzes_for_today(job_queue):
+    """
+    Планирует викторины на сегодня согласно расписанию из конфигурации.
+    Если викторины отключены через state.quiz_enabled или в конфигурации, ничего не делает.
+    
+    Args:
+        job_queue: Очередь задач планировщика Telegram
+    """
     if not state.quiz_enabled or not schedule_config['quiz']['enabled']:
         return
 
@@ -169,6 +206,13 @@ def schedule_quizzes_for_today(job_queue):
 
 
 def schedule_wisdom_for_today(job_queue):
+    """
+    Планирует публикацию мудрых мыслей на сегодня согласно расписанию из конфигурации.
+    Если мудрые мысли отключены через state.wisdom_enabled или в конфигурации, ничего не делает.
+    
+    Args:
+        job_queue: Очередь задач планировщика Telegram
+    """
     if not state.wisdom_enabled or not schedule_config['wisdom']['enabled']:
         return
         
@@ -185,6 +229,13 @@ def schedule_wisdom_for_today(job_queue):
 
 
 async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик для полуночного сброса и перепланирования всех задач.
+    Удаляет текущие запланированные задачи и создает новые на следующий день.
+    
+    Args:
+        context: Контекст от планировщика задач Telegram
+    """
     job_queue = context.job_queue
     names_to_remove = [
         "morning_pics", "day_videos", "day_pics", "evening_pics",
@@ -197,7 +248,8 @@ async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
     for name in names_to_remove:
         for job in job_queue.get_jobs_by_name(name):
             job.schedule_removal()
-
+    
+    # Планируем новые задачи на сегодня
     schedule_autopost_for_today(job_queue)
     schedule_quizzes_for_today(job_queue)
     schedule_wisdom_for_today(job_queue)

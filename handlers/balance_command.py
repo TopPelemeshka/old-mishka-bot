@@ -1,9 +1,21 @@
 # handlers/balance_command.py
+"""
+Модуль обработчика команды /balance.
+Отображает текущий баланс всех пользователей, зарегистрированных в системе.
+"""
 from telegram import Update
 from telegram.ext import ContextTypes
 from balance import load_balances
 
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды /balance.
+    Отображает список всех пользователей и их текущий баланс монет.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     balances = load_balances()
     if not balances:
         await context.bot.send_message(

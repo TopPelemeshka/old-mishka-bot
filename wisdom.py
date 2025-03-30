@@ -1,4 +1,12 @@
 # wisdom.py
+"""
+Модуль для публикации "Мудрости дня" в Telegram-чате.
+Обеспечивает:
+- Загрузку и сохранение списка мудрых фраз
+- Случайный выбор фраз без повторений
+- Ежедневную публикацию мудрости по расписанию
+- Возможность включения/отключения функции
+"""
 
 import os
 import datetime
@@ -8,12 +16,18 @@ from telegram import Update
 from telegram.ext import ContextTypes
 from config import POST_CHAT_ID, MATERIALS_DIR
 from utils import random_time_in_range
-import state  # если хотите проверять, включена ли публикация
+import state  # используется для проверки включена ли публикация
 
 WISDOM_FILE = os.path.join(MATERIALS_DIR, "wisdom.json")
 
 def load_wisdoms() -> list[str]:
-    """Считываем список мудростей из файла JSON (массив строк)."""
+    """
+    Загружает список мудрых фраз из JSON-файла.
+    
+    Returns:
+        list[str]: Список строк с мудрыми фразами или пустой список,
+                  если файл не существует или некорректен
+    """
     if not os.path.exists(WISDOM_FILE):
         return []
     try:
@@ -27,14 +41,22 @@ def load_wisdoms() -> list[str]:
     return []
 
 def save_wisdoms(wisdoms: list[str]):
-    """Перезаписываем wisdom.json."""
+    """
+    Сохраняет список мудрых фраз в JSON-файл.
+    
+    Args:
+        wisdoms: Список строк для сохранения
+    """
     with open(WISDOM_FILE, "w", encoding="utf-8") as f:
         json.dump(wisdoms, f, ensure_ascii=False, indent=4)
 
 def get_random_wisdom() -> str | None:
     """
-    Берём случайную строку-мудрость из массива, удаляем её из файла.
-    Возвращает None, если мудростей нет.
+    Выбирает случайную мудрую фразу из списка и удаляет её,
+    чтобы избежать повторений.
+    
+    Returns:
+        str|None: Случайная мудрая фраза или None, если список пуст
     """
     ws = load_wisdoms()
     if not ws:
@@ -47,12 +69,13 @@ def get_random_wisdom() -> str | None:
 
 async def wisdom_post_callback(context: ContextTypes.DEFAULT_TYPE):
     """
-    Публикация «Мудрости дня» — 1 раз в сутки.
+    Callback-функция для ежедневной публикации "Мудрости дня".
+    Вызывается планировщиком задач по расписанию.
+    
+    Args:
+        context: Контекст от планировщика задач Telegram
     """
-    # Если хотите возможность отключать, проверяем state:
-    # if not state.some_wisdom_enabled:
-    #    return
-
+    # Проверяем, включена ли функция публикации мудрости
     if not state.wisdom_enabled:
         return
 
@@ -70,6 +93,13 @@ async def wisdom_post_callback(context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def start_wisdom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды для включения функции "Мудрость дня".
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     state.wisdom_enabled = True
     # Сохраняем текущее состояние вместе с другими флагами
     state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
@@ -79,6 +109,13 @@ async def start_wisdom_command(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
 async def stop_wisdom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды для отключения функции "Мудрость дня".
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     state.wisdom_enabled = False
     state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
     await context.bot.send_message(

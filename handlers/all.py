@@ -1,4 +1,9 @@
 # handlers/all.py
+"""
+Модуль обработчика команды /all, которая упоминает всех администраторов чата.
+Позволяет отправлять сообщения, привлекающие внимание всех администраторов чата 
+через упоминания (mentions).
+"""
 from telegram import Update
 from telegram.ext import ContextTypes
 from utils import check_chat_and_execute
@@ -8,6 +13,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 async def all_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Обработчик команды /all - упоминает всех администраторов чата.
+    
+    Собирает список администраторов чата и отправляет сообщение с @username каждого
+    из них. Если username отсутствует, использует HTML-ссылку на профиль.
+    Если не удается получить список администраторов, использует список из конфигурации.
+    
+    Args:
+        update: Объект обновления от Telegram
+        context: Контекст обработчика
+    """
     async def _all_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
         
