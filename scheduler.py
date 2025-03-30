@@ -3,12 +3,14 @@ import random
 import logging
 import json
 import os
+from pathlib import Path
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
 from autopost import autopost_10_pics_callback, autopost_3_videos_callback
 from quiz import quiz_post_callback, weekly_quiz_reset
 from wisdom import wisdom_post_callback
+from utils import random_time_in_range, parse_time_from_string
 
 import state  # Флаги автопубликации, викторины, мудрости и т.д.
 
@@ -17,7 +19,7 @@ from config import POST_CHAT_ID, schedule_config
 logger = logging.getLogger(__name__)
 
 # Файл для хранения отложенных публикаций
-SCHEDULED_POSTS_FILE = "state_data/scheduled_posts.json"
+SCHEDULED_POSTS_FILE = Path("state_data") / "scheduled_posts.json"
 
 
 async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
@@ -73,7 +75,7 @@ async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
 
 
 def load_scheduled_posts() -> dict:
-    if not os.path.exists(SCHEDULED_POSTS_FILE):
+    if not SCHEDULED_POSTS_FILE.exists():
         return {}
     try:
         with open(SCHEDULED_POSTS_FILE, "r", encoding="utf-8") as f:
@@ -87,26 +89,13 @@ def load_scheduled_posts() -> dict:
 
 def save_scheduled_posts(data: dict):
     try:
+        # Создаем родительский каталог, если он не существует
+        SCHEDULED_POSTS_FILE.parent.mkdir(exist_ok=True, parents=True)
+        
         with open(SCHEDULED_POSTS_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
     except Exception as e:
         logger.error(f"Ошибка записи {SCHEDULED_POSTS_FILE}: {e}")
-
-
-def random_time_in_range(start: datetime.time, end: datetime.time) -> datetime.time:
-    start_s = start.hour * 3600 + start.minute * 60 + start.second
-    end_s = end.hour * 3600 + end.minute * 60 + end.second
-    r = random.randint(start_s, end_s)
-    hh = r // 3600
-    mm = (r % 3600) // 60
-    ss = r % 60
-    return datetime.time(hour=hh, minute=mm, second=ss)
-
-
-def parse_time_from_string(time_str):
-    """Преобразует строку времени в формате HH:MM в объект datetime.time"""
-    hours, minutes = map(int, time_str.split(':'))
-    return datetime.time(hour=hours, minute=minutes)
 
 
 #

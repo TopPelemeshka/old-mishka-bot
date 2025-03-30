@@ -7,18 +7,10 @@ import random
 from telegram import Update
 from telegram.ext import ContextTypes
 from config import POST_CHAT_ID, MATERIALS_DIR
+from utils import random_time_in_range
 import state  # если хотите проверять, включена ли публикация
 
 WISDOM_FILE = os.path.join(MATERIALS_DIR, "wisdom.json")
-
-def random_time_in_range(start: datetime.time, end: datetime.time) -> datetime.time:
-    start_seconds = start.hour * 3600 + start.minute * 60 + start.second
-    end_seconds = end.hour * 3600 + end.minute * 60 + end.second
-    rand_sec = random.randint(start_seconds, end_seconds)
-    hh = rand_sec // 3600
-    mm = (rand_sec % 3600) // 60
-    ss = rand_sec % 60
-    return datetime.time(hour=hh, minute=mm, second=ss)
 
 def load_wisdoms() -> list[str]:
     """Считываем список мудростей из файла JSON (массив строк)."""

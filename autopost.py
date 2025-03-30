@@ -7,6 +7,7 @@ from telegram import InputMediaPhoto, InputMediaVideo
 from telegram.ext import ContextTypes
 
 from config import POST_CHAT_ID
+from utils import random_time_in_range
 from utils_autopost import (
     get_top_anecdote_and_remove,
     get_random_file_from_folder,
@@ -25,24 +26,6 @@ from wisdom import load_wisdoms
 import state
 
 logger = logging.getLogger(__name__)
-
-def random_time_in_range(start: datetime.time, end: datetime.time) -> datetime.time:
-    """
-    Возвращает случайное время (datetime.time) между start и end.
-    Например, если start = datetime.time(18, 15) и end = datetime.time(18, 45),
-    то функция вернёт время между 18:15:00 и 18:45:00.
-    """
-    # Переводим время в секунды от начала дня
-    start_seconds = start.hour * 3600 + start.minute * 60 + start.second
-    end_seconds = end.hour * 3600 + end.minute * 60 + end.second
-    # Генерируем случайное количество секунд между start_seconds и end_seconds
-    random_seconds = random.randint(start_seconds, end_seconds)
-    # Переводим обратно в часы, минуты, секунды
-    hour = random_seconds // 3600
-    minute = (random_seconds % 3600) // 60
-    second = random_seconds % 60
-    return datetime.time(hour, minute, second)
-
 
 def _get_folder_by_category(category: str):
     """Вспомогательная функция для выбора папки по названию категории."""
