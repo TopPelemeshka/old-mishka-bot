@@ -12,7 +12,7 @@ from wisdom import wisdom_post_callback
 
 import state  # Флаги автопубликации, викторины, мудрости и т.д.
 
-from config import POST_CHAT_ID
+from config import POST_CHAT_ID, schedule_config
 
 logger = logging.getLogger(__name__)
 
@@ -103,82 +103,106 @@ def random_time_in_range(start: datetime.time, end: datetime.time) -> datetime.t
     return datetime.time(hour=hh, minute=mm, second=ss)
 
 
+def parse_time_from_string(time_str):
+    """Преобразует строку времени в формате HH:MM в объект datetime.time"""
+    hours, minutes = map(int, time_str.split(':'))
+    return datetime.time(hour=hours, minute=minutes)
+
+
 #
 # ==== ЕЖЕДНЕВНОЕ РАСПИСАНИЕ (автопост, викторины, мудрость) ====
 #
 
 def schedule_autopost_for_today(job_queue):
-    time1 = random_time_in_range(datetime.time(4, 00), datetime.time(4, 50))
+    # Расписание утренних картинок
+    morning_config = schedule_config['autopost']['morning_pics']
+    start_time = parse_time_from_string(morning_config['time_range']['start'])
+    end_time = parse_time_from_string(morning_config['time_range']['end'])
+    time1 = random_time_in_range(start_time, end_time)
     job_queue.run_daily(
         autopost_10_pics_callback,
         time=time1,
-        days=(0, 1, 2, 3, 4, 5, 6),
-        name="10pics_morning"
+        days=tuple(morning_config['days']),
+        name="morning_pics"
     )
 
-    time2 = random_time_in_range(datetime.time(7, 10), datetime.time(7, 50))
+    # Расписание дневных видео
+    day_videos_config = schedule_config['autopost']['day_videos']
+    start_time = parse_time_from_string(day_videos_config['time_range']['start'])
+    end_time = parse_time_from_string(day_videos_config['time_range']['end'])
+    time2 = random_time_in_range(start_time, end_time)
     job_queue.run_daily(
         autopost_3_videos_callback,
         time=time2,
-        days=(0, 1, 2, 3, 4, 5, 6),
-        name="3videos_day"
+        days=tuple(day_videos_config['days']),
+        name="day_videos"
     )
 
-    time3 = random_time_in_range(datetime.time(10, 10), datetime.time(10, 50))
+    # Расписание дневных картинок
+    day_pics_config = schedule_config['autopost']['day_pics']
+    start_time = parse_time_from_string(day_pics_config['time_range']['start'])
+    end_time = parse_time_from_string(day_pics_config['time_range']['end'])
+    time3 = random_time_in_range(start_time, end_time)
     job_queue.run_daily(
         autopost_10_pics_callback,
         time=time3,
-        days=(0, 1, 2, 3, 4, 5, 6),
-        name="10pics_day"
+        days=tuple(day_pics_config['days']),
+        name="day_pics"
     )
 
-    time4 = random_time_in_range(datetime.time(13, 10), datetime.time(13, 50))
+    # Расписание вечерних картинок
+    evening_pics_config = schedule_config['autopost']['evening_pics']
+    start_time = parse_time_from_string(evening_pics_config['time_range']['start'])
+    end_time = parse_time_from_string(evening_pics_config['time_range']['end'])
+    time4 = random_time_in_range(start_time, end_time)
     job_queue.run_daily(
         autopost_10_pics_callback,
         time=time4,
-        days=(0, 1, 2, 3, 4, 5, 6),
-        name="10pics_evening"
+        days=tuple(evening_pics_config['days']),
+        name="evening_pics"
     )
 
 
 def schedule_quizzes_for_today(job_queue):
-    if not state.quiz_enabled:
+    if not state.quiz_enabled or not schedule_config['quiz']['enabled']:
         return
 
-    def _rand_time(s, e):
-        start_s = s.hour * 3600 + s.minute * 60
-        end_s = e.hour * 3600 + e.minute * 60
-        r = random.randint(start_s, end_s)
-        hh = r // 3600
-        mm = (r % 3600) // 60
-        return datetime.time(hour=hh, minute=mm)
-
-    times = [
-        _rand_time(datetime.time(5, 10), datetime.time(5, 50)),
-        _rand_time(datetime.time(6, 10), datetime.time(6, 50)),
-        _rand_time(datetime.time(8, 10), datetime.time(8, 50)),
-        _rand_time(datetime.time(9, 10), datetime.time(9, 50)),
-        _rand_time(datetime.time(11, 10), datetime.time(11, 50)),
-        _rand_time(datetime.time(12, 10), datetime.time(12, 50)),
-        _rand_time(datetime.time(14, 10), datetime.time(14, 50)),
-        _rand_time(datetime.time(15, 10), datetime.time(15, 50))
-    ]
-    for i, t in enumerate(times, start=1):
-        job_queue.run_daily(quiz_post_callback, time=t, days=(0, 1, 2, 3, 4, 5, 6), name=f"quiz_{i}")
+    for i, quiz_time_config in enumerate(schedule_config['quiz']['quiz_times'], start=1):
+        start_time = parse_time_from_string(quiz_time_config['time_range']['start'])
+        end_time = parse_time_from_string(quiz_time_config['time_range']['end'])
+        time = random_time_in_range(start_time, end_time)
+        job_queue.run_daily(
+            quiz_post_callback,
+            time=time,
+            days=tuple(quiz_time_config['days']),
+            name=f"quiz_{i}"
+        )
 
 
 def schedule_wisdom_for_today(job_queue):
-    if not state.wisdom_enabled:
+    if not state.wisdom_enabled or not schedule_config['wisdom']['enabled']:
         return
-    time = random_time_in_range(datetime.time(2, 0), datetime.time(2, 40))
-    job_queue.run_daily(wisdom_post_callback, time=time, days=(0, 1, 2, 3, 4, 5, 6), name="wisdom_of_day")
+        
+    wisdom_config = schedule_config['wisdom']
+    start_time = parse_time_from_string(wisdom_config['time_range']['start'])
+    end_time = parse_time_from_string(wisdom_config['time_range']['end'])
+    time = random_time_in_range(start_time, end_time)
+    job_queue.run_daily(
+        wisdom_post_callback,
+        time=time,
+        days=tuple(wisdom_config['days']),
+        name="wisdom"
+    )
 
 
 async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
     job_queue = context.job_queue
     names_to_remove = [
-        "10pics_morning", "3videos_day", "10pics_evening", "10pics_day",
+        "morning_pics", "day_videos", "day_pics", "evening_pics",
         "quiz_1", "quiz_2", "quiz_3", "quiz_4", "quiz_5", "quiz_6", "quiz_7", "quiz_8",
+        "wisdom",
+        # Оставляем и старые имена для обратной совместимости
+        "10pics_morning", "3videos_day", "10pics_evening", "10pics_day",
         "wisdom_of_day"
     ]
     for name in names_to_remove:

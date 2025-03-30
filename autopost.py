@@ -52,7 +52,9 @@ def _get_folder_by_category(category: str):
         SINGLE_MEME_DIR,
         STANDART_ART_DIR,
         STANDART_MEME_DIR,
-        VIDEO_MEME_DIR
+        VIDEO_MEME_DIR,
+        VIDEO_ERO_DIR,
+        VIDEO_AUTO_DIR
     )
     if category == "ero-anime":
         return ERO_ANIME_DIR
@@ -66,6 +68,10 @@ def _get_folder_by_category(category: str):
         return STANDART_MEME_DIR
     elif category == "video-meme":
         return VIDEO_MEME_DIR
+    elif category == "video-ero":
+        return VIDEO_ERO_DIR
+    elif category == "video-auto":
+        return VIDEO_AUTO_DIR
     return None
 
 
@@ -153,7 +159,11 @@ async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
-    """Пост с 3 видео и анекдотом."""
+    """Пост с 3 видео (по одному из разных категорий) и анекдотом.
+    
+    Если нет видео из категории video-auto или video-ero,
+    то вместо него используется видео из video-meme.
+    """
     if not state.autopost_enabled:
         return
 
@@ -164,26 +174,57 @@ async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
 
     media = []
     used_files = []
-    for _ in range(3):
-        file_path = get_random_file_from_folder(_get_folder_by_category("video-meme"))
-        if file_path is None:
+    
+    # Видео из категории video-meme (обязательно)
+    file_meme = get_random_file_from_folder(_get_folder_by_category("video-meme"))
+    if file_meme is None:
+        await context.bot.send_message(
+            chat_id=POST_CHAT_ID,
+            text="Не хватает видео video-meme 😭"
+        )
+        return
+    
+    # Видео из категории video-ero (с фолбеком на video-meme)
+    file_ero = get_random_file_from_folder(_get_folder_by_category("video-ero"))
+    category_ero = "video-ero"
+    if file_ero is None:
+        # Используем ещё одно видео из video-meme вместо video-ero
+        file_ero = get_random_file_from_folder(_get_folder_by_category("video-meme"))
+        category_ero = "video-meme" # меняем категорию для перемещения в архив
+        if file_ero is None:
             await context.bot.send_message(
                 chat_id=POST_CHAT_ID,
-                text="Не хватает видосиков video-meme 😭"
+                text="Не хватает видео video-meme для замены video-ero 😭"
             )
             return
-            
+    
+    # Видео из категории video-auto (с фолбеком на video-meme)
+    file_auto = get_random_file_from_folder(_get_folder_by_category("video-auto"))
+    category_auto = "video-auto"
+    if file_auto is None:
+        # Используем ещё одно видео из video-meme вместо video-auto
+        file_auto = get_random_file_from_folder(_get_folder_by_category("video-meme"))
+        category_auto = "video-meme" # меняем категорию для перемещения в архив
+        if file_auto is None:
+            await context.bot.send_message(
+                chat_id=POST_CHAT_ID,
+                text="Не хватает видео video-meme для замены video-auto 😭"
+            )
+            return
+    
+    # Проверяем каждое видео
+    for file_path, category in [(file_meme, "video-meme"), (file_ero, category_ero), (file_auto, category_auto)]:
         # Дополнительная проверка перед отправкой
         if not is_valid_file(file_path):
             logger.error(f"Видео не прошло проверку: {file_path}")
             await context.bot.send_message(
                 chat_id=POST_CHAT_ID,
-                text=f"Видео не прошло проверку: {file_path}"
+                text=f"Видео из категории {category} не прошло проверку: {file_path}"
             )
             return
-            
+        
         media.append(InputMediaVideo(open(file_path, "rb")))
-        used_files.append((file_path, "video-meme"))
+        used_files.append((file_path, category))
 
     # Публикуем
     try:
@@ -200,10 +241,10 @@ async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         # Логируем подробности об ошибке вместе с информацией о файлах
-        logger.error(f"Ошибка при отправке видосиков. Файлы: {used_files}. Ошибка: {e}")
+        logger.error(f"Ошибка при отправке видео. Файлы: {used_files}. Ошибка: {e}")
         await context.bot.send_message(
             chat_id=POST_CHAT_ID,
-            text=f"Ошибка при отправке видосиков: {e}\nИспользуемые файлы: {used_files}"
+            text=f"Ошибка при отправке видео: {e}\nИспользуемые файлы: {used_files}"
         )
         return
 
@@ -241,18 +282,78 @@ async def stats_command(update, context):
     #   standart-meme: требуется 3 штуки на пост (без учёта fallback) → count / 3
     #   anecdotes: 1 анекдот на пост → count постов
     # Для видео:
-    #   video-meme: требуется 3 видео на пост → count / 3
+    #   video-meme: требуется минимум 1 и до 3 видео на пост, в зависимости от наличия video-ero и video-auto
     ratios = {}
+    
+    # Расчёт для ero-real (требуется 9 на день: 3 * 3)
     if stats.get("ero-real", 0):
-        ratios["ero-real"] = stats["ero-real"] / 9
+        ratios["ero-real"] = stats["ero-real"] / 9  # 3*3 для 3-х постов с 10 картинками в день
+    
+    # Расчёт для ero-anime (требуется 6 на день: 2 * 3)
     if stats.get("ero-anime", 0):
-        ratios["ero-anime"] = stats["ero-anime"] / 6
+        ratios["ero-anime"] = stats["ero-anime"] / 6  # 2*3 для 3-х постов с 10 картинками в день
+    
+    # НЕ включаем в ratios заменяемые категории:
+    # standart-art (заменяется на standart-meme)
+    # single-meme (заменяется на standart-meme)
+    
+    # Расчёт для standart-meme с учётом возможных замен
     if stats.get("standart-meme", 0):
-        ratios["standart-meme"] = stats["standart-meme"] / 12
+        # Базовое потребление: 9 (по 3 на каждый пост)
+        base_meme_needed = 9
+        
+        # Потенциальные замены standart-art
+        if stats.get("standart-art", 0) < 3:
+            additional_for_art = 3 - stats.get("standart-art", 0)
+        else:
+            additional_for_art = 0
+            
+        # Потенциальные замены single-meme
+        if stats.get("single-meme", 0) < 3:
+            additional_for_single = 3 - stats.get("single-meme", 0)
+        else:
+            additional_for_single = 0
+            
+        total_meme_needed = base_meme_needed + additional_for_art + additional_for_single
+        ratios["standart-meme"] = stats["standart-meme"] / total_meme_needed
+    
+    # Расчёт для анекдотов (требуется 4 на день: 3 для картинок + 1 для видео)
     if stats.get("anecdotes", 0):
-        ratios["anecdotes"] = stats["anecdotes"] / 4
+        ratios["anecdotes"] = stats["anecdotes"] / 4  # 3 для картинок + 1 для видео в день
+    
+    # НЕ включаем в ratios заменяемые категории:
+    # video-ero (заменяется на video-meme)
+    # video-auto (заменяется на video-meme)
+        
+    # Расчет для video-meme с учетом возможных замен
     if stats.get("video-meme", 0):
-        ratios["video-meme"] = stats["video-meme"] / 3
+        # Базовое потребление всегда 1
+        needed_meme_videos = 1
+        
+        # Если нет video-ero, нужно ещё +1 video-meme как замена
+        if stats.get("video-ero", 0) == 0:
+            needed_meme_videos += 1
+            
+        # Если нет video-auto, нужно ещё +1 video-meme как замена
+        if stats.get("video-auto", 0) == 0:
+            needed_meme_videos += 1
+            
+        ratios["video-meme"] = stats["video-meme"] / needed_meme_videos
+
+    # Добавляем информацию о заменяемых категориях для справки
+    replaceable_categories = {}
+    # Проверяем заменяемые категории
+    if stats.get("standart-art", 0):
+        replaceable_categories["standart-art"] = stats["standart-art"] / 3
+        
+    if stats.get("single-meme", 0):
+        replaceable_categories["single-meme"] = stats["single-meme"] / 3
+        
+    if stats.get("video-ero", 0):
+        replaceable_categories["video-ero"] = stats["video-ero"] / 1
+        
+    if stats.get("video-auto", 0):
+        replaceable_categories["video-auto"] = stats["video-auto"] / 1
 
     if ratios:
         bottleneck_category = min(ratios, key=ratios.get)
@@ -270,8 +371,18 @@ async def stats_command(update, context):
         text_lines.append(f"  {k}: {v}")
     text_lines.append("")
     text_lines.append(
-        f"Дефицит: '{bottleneck_category}'"
+        f"Дефицит: '{bottleneck_category}' (хватит примерно на {bottleneck_posts} дней)"
     )
+    text_lines.append(f"Соотношения основных категорий (дней):")
+    for cat, value in sorted(ratios.items(), key=lambda x: x[1]):
+        text_lines.append(f"  {cat}: {value:.1f}")
+    
+    if replaceable_categories:
+        text_lines.append("")
+        text_lines.append(f"Заменяемые категории (не учитываются в дефиците):")
+        for cat, value in sorted(replaceable_categories.items(), key=lambda x: x[1]):
+            text_lines.append(f"  {cat}: {value:.1f}")
+    
     text_lines.append("")
     text_lines.append(f"Вопросов для викторины осталось: {quiz_count}")
     text_lines.append(f"Цитат дня осталось: {wisdom_count}")
@@ -282,10 +393,10 @@ async def stats_command(update, context):
     text_lines.append(f"<b>ЦИТАТ ДНЯ ОСТАЛОСЬ НА {wisdom_count} ДНЕЙ.</b>")
 
     await context.bot.send_message(
-    chat_id=update.effective_chat.id,
-    text="\n".join(text_lines),
-    parse_mode="HTML"
-)
+        chat_id=update.effective_chat.id,
+        text="\n".join(text_lines),
+        parse_mode="HTML"
+    )
 
 async def next_posts_command(update, context):
     """

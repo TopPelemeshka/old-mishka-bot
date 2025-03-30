@@ -18,7 +18,7 @@ log_dir = "logs"
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
 
-from config import TOKEN
+from config import TOKEN, schedule_config
 from handlers.start_help import start, help_command
 from handlers.getfileid import getfileid_command, catch_animation_fileid
 from handlers.roll import roll_command, roll_callback
@@ -38,7 +38,7 @@ from autopost import (
     next_posts_command
 )
 
-from scheduler import midnight_reset_callback, schedule_post_command, change_date_callback, custom_date_handler, reschedule_all_posts
+from scheduler import midnight_reset_callback, schedule_post_command, change_date_callback, custom_date_handler, reschedule_all_posts, parse_time_from_string
 from quiz import poll_answer_handler, rating_command, weekly_quiz_reset
 from state import load_state
 
@@ -55,6 +55,10 @@ from casino.roulette import handle_roulette_bet_callback, handle_change_bet
 
 
 # Настройка логирования
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
 log_file = os.path.join(log_dir, "bot.log")
 
 # Настройка логирования
@@ -162,31 +166,28 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(handle_change_bet, pattern=r"^change_bet:"))
 
 
-
-    # Назначаем "ночной" джоб (например, в 00:05)
-    # чтобы каждый день пересоздавать расписание на случайное время
+    # Назначаем "ночной" джоб для сброса расписания
+    midnight_config = schedule_config['midnight_reset']
+    midnight_time = parse_time_from_string(midnight_config['time'])
     app.job_queue.run_daily(
         midnight_reset_callback,
-        time=datetime.time(hour=0, minute=5),
-        days=(0,1,2,3,4,5,6),
+        time=midnight_time,
+        days=tuple(midnight_config['days']),
         name="reset_schedule"
     )
 
+    # Еженедельный сброс викторин
+    quiz_reset_config = schedule_config['weekly_quiz_reset']
+    quiz_reset_time = parse_time_from_string(quiz_reset_config['time'])
     app.job_queue.run_daily(
         weekly_quiz_reset,
-        time=datetime.time(hour=15, minute=00),
-        days=(0,),
+        time=quiz_reset_time,
+        days=tuple(quiz_reset_config['days']),
         name="weekly_quiz_reset"
     )
 
     # При первом запуске бота — сразу же сделаем сброс расписания
     # чтобы назначить на сегодня (иначе оно впервые сработает только в полночь).
-    # Можно сделать так:
-    #   app.job_queue.run_once(midnight_reset_callback, when=0)  # сразу же
-    # ИЛИ руками вызвать функцию midnight_reset_callback(...)
-    # Но вызывать придётся в контексте:
-    #   midnight_reset_callback(context=app.job_queue)  # или создать MockContext.
-    # Проще: назначим run_once:
     app.job_queue.run_once(midnight_reset_callback, 0)
     # Проверяем, есть ли отложенные публикации, время которых уже прошло
     app.job_queue.run_once(reschedule_all_posts, 0)

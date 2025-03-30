@@ -14,6 +14,7 @@ bot_config = load_config('bot_config.json')
 paths_config = load_config('paths_config.json')
 sound_config = load_config('sound_config.json')
 file_ids = load_config('file_ids.json')
+schedule_config = load_config('schedule_config.json')
 
 # Экспортируем переменные для обратной совместимости
 TOKEN = bot_config['token']
@@ -34,6 +35,8 @@ SINGLE_MEME_DIR = paths_config['content_dirs']['single_meme']
 STANDART_ART_DIR = paths_config['content_dirs']['standart_art']
 STANDART_MEME_DIR = paths_config['content_dirs']['standart_meme']
 VIDEO_MEME_DIR = paths_config['content_dirs']['video_meme']
+VIDEO_ERO_DIR = paths_config['content_dirs']['video_ero']
+VIDEO_AUTO_DIR = paths_config['content_dirs']['video_auto']
 
 # Архивные директории
 ARCHIVE_ERO_ANIME_DIR = paths_config['archive_dirs']['ero_anime']
@@ -42,6 +45,8 @@ ARCHIVE_SINGLE_MEME_DIR = paths_config['archive_dirs']['single_meme']
 ARCHIVE_STANDART_ART_DIR = paths_config['archive_dirs']['standart_art']
 ARCHIVE_STANDART_MEME_DIR = paths_config['archive_dirs']['standart_meme']
 ARCHIVE_VIDEO_MEME_DIR = paths_config['archive_dirs']['video_meme']
+ARCHIVE_VIDEO_ERO_DIR = paths_config['archive_dirs']['video_ero']
+ARCHIVE_VIDEO_AUTO_DIR = paths_config['archive_dirs']['video_auto']
 
 # Путь к файлу с анекдотами
 ANECDOTES_FILE = paths_config['anecdotes_file']

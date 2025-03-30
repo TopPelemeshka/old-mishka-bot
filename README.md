@@ -41,6 +41,7 @@ cp config/bot_config.example.json config/bot_config.json
 cp config/file_ids.example.json config/file_ids.json
 cp config/paths_config.example.json config/paths_config.json
 cp config/sound_config.example.json config/sound_config.json
+cp config/schedule_config.example.json config/schedule_config.json
 ```
 
 6. Создайте файлы состояния:
@@ -69,6 +70,20 @@ source venv/bin/activate  # для Linux/Mac
 ```bash
 python main.py
 ```
+
+## Настройка расписания
+
+Расписание публикаций постов, викторин и мудрости настраивается в файле `config/schedule_config.json`. Файл содержит следующие разделы:
+
+- `autopost` - настройки расписания автопостов (утренние картинки, дневные видео, дневные картинки, вечерние картинки)
+- `quiz` - настройки для викторин
+- `wisdom` - настройки для мудрости дня
+- `midnight_reset` - время сброса расписания
+- `weekly_quiz_reset` - время еженедельного сброса викторин
+
+Для каждой задачи можно настроить:
+- `time_range` - диапазон времени для генерации случайного времени публикации
+- `days` - дни недели (0-6, где 0 - воскресенье), в которые публикация будет выполняться
 
 ## Настройка автозапуска (для Linux)
 

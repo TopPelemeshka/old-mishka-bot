@@ -7,7 +7,9 @@
         "single_meme": "post_materials/single-meme",
         "standart_art": "post_materials/standart-art",
         "standart_meme": "post_materials/standart-meme",
-        "video_meme": "post_materials/video-meme"
+        "video_meme": "post_materials/video-meme",
+        "video_ero": "post_materials/video-ero",
+        "video_auto": "post_materials/video-auto"
     },
     "archive_dirs": {
         "ero_anime": "post_archive/ero-anime",
@@ -15,7 +17,9 @@
         "single_meme": "post_archive/single-meme",
         "standart_art": "post_archive/standart-art",
         "standart_meme": "post_archive/standart-meme",
-        "video_meme": "post_archive/video-meme"
+        "video_meme": "post_archive/video-meme",
+        "video_ero": "post_archive/video-ero",
+        "video_auto": "post_archive/video-auto"
     },
     "anecdotes_file": "post_materials/anecdotes.txt"
 } 
