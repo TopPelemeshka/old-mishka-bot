@@ -325,9 +325,9 @@ def predict_10pics_posts(stats):
     
     return count_posts
 
-def predict_3videos_posts(stats):
+def predict_4videos_posts(stats):
     """
-    Считает, сколько раз мы можем сделать пост с 3 видео (1 video-meme, 1 video-ero, 1 video-auto) + 1 анекдот.
+    Считает, сколько раз мы можем сделать пост с 4 видео (1 video-meme, 1 video-ero, 2 video-auto) + 1 анекдот.
     Если нет видео из категории video-auto или video-ero, то вместо него используется видео из video-meme.
     """
     st = stats.copy()
@@ -342,10 +342,40 @@ def predict_3videos_posts(stats):
     if 'video-auto' not in st:
         st['video-auto'] = 0
         
-    # Подсчитываем общую сумму видео-контента
-    # Количество гарантированных постов = сумма всех видео / 3
-    total_videos = st['video-meme'] + st['video-ero'] + st['video-auto']
-    count_posts = int(total_videos / 3)
+    # Количество постов, которые можно создать исходя из имеющихся видео
+    # Для поста нужно 1 video-meme, 1 video-ero и 2 video-auto
+    # Если какие-то видео отсутствуют, они заменяются на video-meme
+    
+    # Вычисляем, сколько video-meme нам понадобится для замены
+    need_replacements = 0
+    
+    # Если нет video-ero, нужна 1 замена
+    if st['video-ero'] == 0:
+        need_replacements += 1
+    
+    # Если video-auto меньше 2, нужны замены (1 или 2)
+    if st['video-auto'] < 2:
+        need_replacements += (2 - st['video-auto'])
+    
+    # Рассчитываем, сколько постов можем сделать
+    
+    # Количество постов по video-meme (учитывая возможные замены)
+    # Каждый пост требует минимум 1 video-meme + need_replacements для замены
+    posts_from_meme = st['video-meme'] // (1 + need_replacements) if (1 + need_replacements) > 0 else 0
+    
+    # Количество постов по video-ero (если нет замен)
+    posts_from_ero = st['video-ero'] if need_replacements < 1 else 0
+    
+    # Количество постов по video-auto (нужно 2 на пост)
+    posts_from_auto = st['video-auto'] // 2 if need_replacements < 2 else 0
+    
+    # Определяем лимитирующий фактор
+    if need_replacements > 0:
+        # Если нужны замены, лимитирует video-meme
+        count_posts = posts_from_meme
+    else:
+        # Если замены не нужны, лимитирует минимум из всех трех
+        count_posts = min(posts_from_meme, posts_from_ero, posts_from_auto)
     
     # Ограничиваем количество постов количеством доступных анекдотов
     count_posts = min(count_posts, st['anecdotes'])
@@ -367,7 +397,7 @@ def predict_full_days(stats):
     
     # Получаем количество постов от других предиктивных функций
     pics_posts = predict_10pics_posts(st)
-    video_posts = predict_3videos_posts(st)
+    video_posts = predict_4videos_posts(st)
     anecdote_count = st.get('anecdotes', 0)
     
     # Для полного дня нужно:

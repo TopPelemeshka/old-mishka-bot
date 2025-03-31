@@ -200,7 +200,7 @@ def test_schedule_autopost_for_today():
         assert job_queue.run_daily.call_count == 4
         expected_calls = [
             call(autopost.autopost_10_pics_callback, time=real_datetime.time(9, 30), days=tuple(range(7)), name="morning_pics"),
-            call(autopost.autopost_3_videos_callback, time=real_datetime.time(13, 15), days=tuple(range(5)), name="day_videos"),
+            call(autopost.autopost_4_videos_callback, time=real_datetime.time(13, 15), days=tuple(range(5)), name="day_videos"),
             call(autopost.autopost_10_pics_callback, time=real_datetime.time(15, 45), days=tuple(range(7)), name="day_pics"),
             call(autopost.autopost_10_pics_callback, time=real_datetime.time(20, 5), days=tuple(range(7)), name="evening_pics"),
         ]

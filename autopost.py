@@ -22,7 +22,7 @@ from utils_autopost import (
     move_file_to_archive,
     get_available_stats,
     predict_10pics_posts,
-    predict_3videos_posts,
+    predict_4videos_posts,
     predict_full_days,
     is_valid_file,
 )
@@ -167,9 +167,9 @@ async def autopost_10_pics_callback(context: ContextTypes.DEFAULT_TYPE):
         move_file_to_archive(path, cat)
 
 
-async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
+async def autopost_4_videos_callback(context: ContextTypes.DEFAULT_TYPE):
     """
-    Пост с 3 видео (по одному из разных категорий) и анекдотом.
+    Пост с 4 видео (по одному из video-meme, video-ero, и два из video-auto) и анекдотом.
     
     Если нет видео из категории video-auto или video-ero,
     то вместо него используется видео из video-meme.
@@ -211,22 +211,41 @@ async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
             )
             return
     
-    # Видео из категории video-auto (с фолбеком на video-meme)
-    file_auto = get_random_file_from_folder(_get_folder_by_category("video-auto"))
-    category_auto = "video-auto"
-    if file_auto is None:
+    # Первое видео из категории video-auto (с фолбеком на video-meme)
+    file_auto1 = get_random_file_from_folder(_get_folder_by_category("video-auto"))
+    category_auto1 = "video-auto"
+    if file_auto1 is None:
         # Используем ещё одно видео из video-meme вместо video-auto
-        file_auto = get_random_file_from_folder(_get_folder_by_category("video-meme"))
-        category_auto = "video-meme" # меняем категорию для перемещения в архив
-        if file_auto is None:
+        file_auto1 = get_random_file_from_folder(_get_folder_by_category("video-meme"))
+        category_auto1 = "video-meme" # меняем категорию для перемещения в архив
+        if file_auto1 is None:
             await context.bot.send_message(
                 chat_id=POST_CHAT_ID,
                 text="Не хватает видео video-meme для замены video-auto 😭"
             )
             return
     
+    # Второе видео из категории video-auto (с фолбеком на video-meme)
+    file_auto2 = get_random_file_from_folder(_get_folder_by_category("video-auto"))
+    category_auto2 = "video-auto"
+    if file_auto2 is None:
+        # Используем ещё одно видео из video-meme вместо video-auto
+        file_auto2 = get_random_file_from_folder(_get_folder_by_category("video-meme"))
+        category_auto2 = "video-meme" # меняем категорию для перемещения в архив
+        if file_auto2 is None:
+            await context.bot.send_message(
+                chat_id=POST_CHAT_ID,
+                text="Не хватает видео video-meme для замены второго video-auto 😭"
+            )
+            return
+    
     # Проверяем каждое видео
-    for file_path, category in [(file_meme, "video-meme"), (file_ero, category_ero), (file_auto, category_auto)]:
+    for file_path, category in [
+        (file_auto1, category_auto1),
+        (file_meme, "video-meme"), 
+        (file_ero, category_ero), 
+        (file_auto2, category_auto2)
+    ]:
         # Дополнительная проверка перед отправкой
         if not is_valid_file(file_path):
             logger.error(f"Видео не прошло проверку: {file_path}")
@@ -283,7 +302,7 @@ async def stats_command(update, context):
     stats = get_available_stats()
     # Получаем предсказания для разных типов постов
     max_10pics = predict_10pics_posts(stats)
-    max_3videos = predict_3videos_posts(stats)
+    max_4videos = predict_4videos_posts(stats)
     full_days = predict_full_days(stats)
     
     wisdom_count = count_wisdoms()
@@ -295,7 +314,7 @@ async def stats_command(update, context):
     #   standart-meme: требуется 3 штуки на пост (без учёта fallback) → count / 3
     #   anecdotes: 1 анекдот на пост → count постов
     # Для видео:
-    #   video-meme: требуется минимум 1 и до 3 видео на пост, в зависимости от наличия video-ero и video-auto
+    #   video-meme: требуется минимум 1 и до 4 видео на пост, в зависимости от наличия video-ero и video-auto
     ratios = {}
     
     # Расчёт для ero-real (требуется 9 на день: 3 * 3)
@@ -347,9 +366,9 @@ async def stats_command(update, context):
         if stats.get("video-ero", 0) == 0:
             needed_meme_videos += 1
             
-        # Если нет video-auto, нужно ещё +1 video-meme как замена
-        if stats.get("video-auto", 0) == 0:
-            needed_meme_videos += 1
+        # Если video-auto < 2, нужны замены (1 или 2)
+        if stats.get("video-auto", 0) < 2:
+            needed_meme_videos += (2 - stats.get("video-auto", 0))
             
         ratios["video-meme"] = stats["video-meme"] / needed_meme_videos
 
@@ -366,7 +385,7 @@ async def stats_command(update, context):
         replaceable_categories["video-ero"] = stats["video-ero"] / 1
         
     if stats.get("video-auto", 0):
-        replaceable_categories["video-auto"] = stats["video-auto"] / 1
+        replaceable_categories["video-auto"] = stats["video-auto"] / 2  # Теперь нужно 2 видео на пост
 
     if ratios:
         bottleneck_category = min(ratios, key=ratios.get)

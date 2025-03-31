@@ -15,7 +15,7 @@ from pathlib import Path
 from telegram.ext import ContextTypes, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 
-from autopost import autopost_10_pics_callback, autopost_3_videos_callback
+from autopost import autopost_10_pics_callback, autopost_4_videos_callback
 from quiz import quiz_post_callback, weekly_quiz_reset
 from wisdom import wisdom_post_callback
 from utils import random_time_in_range, parse_time_from_string
@@ -151,7 +151,7 @@ def schedule_autopost_for_today(job_queue):
     end_time = parse_time_from_string(day_videos_config['time_range']['end'])
     time2 = random_time_in_range(start_time, end_time)
     job_queue.run_daily(
-        autopost_3_videos_callback,
+        autopost_4_videos_callback,
         time=time2,
         days=tuple(day_videos_config['days']),
         name="day_videos"

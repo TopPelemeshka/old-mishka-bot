@@ -9,7 +9,7 @@ try:
     from autopost import (
         _get_folder_by_category, # Хотя она внутренняя, протестируем её отдельно
         autopost_10_pics_callback,
-        autopost_3_videos_callback,
+        autopost_4_videos_callback,
         stop_autopost_command,
         start_autopost_command,
         stats_command,
@@ -190,7 +190,7 @@ async def test_autopost_10_pics_send_error(mock_logger, mock_open_file, mock_is_
     mock_logger.error.assert_called_once()
     context.bot.send_message.assert_awaited_with(chat_id=-4737984792, text=f"Ошибка при отправке поста: {send_error}")
 
-# --- Тесты для autopost_3_videos_callback ---
+# --- Тесты для autopost_4_videos_callback ---
 # (Аналогично autopost_10_pics_callback, но с InputMediaVideo и логикой фолбека)
 
 @pytest.mark.asyncio
@@ -200,45 +200,52 @@ async def test_autopost_10_pics_send_error(mock_logger, mock_open_file, mock_is_
 @patch('autopost.is_valid_file', return_value=True)
 @patch('builtins.open', new_callable=mock_open, read_data=b'video data')
 @patch('autopost.move_file_to_archive')
-async def test_autopost_3_videos_success(mock_move, mock_open_file, mock_is_valid, mock_get_random, mock_get_anecdote):
+async def test_autopost_4_videos_success(mock_move, mock_open_file, mock_is_valid, mock_get_random, mock_get_anecdote):
     context = MagicMock()
     context.bot = AsyncMock()
     context.bot.send_media_group = AsyncMock()
     context.bot.send_message = AsyncMock()
 
     # Настройка side_effect для get_random_file_from_folder
-    # video-meme, video-ero, video-auto
-    mock_get_random.side_effect = ["/path/meme.mp4", "/path/ero.mp4", "/path/auto.mp4"]
+    # video-meme, video-ero, video-auto, video-auto
+    mock_get_random.side_effect = [
+        "/path/meme.mp4",   # для video-meme
+        "/path/ero.mp4",    # для video-ero
+        "/path/auto1.mp4",  # для первого video-auto
+        "/path/auto2.mp4"   # для второго video-auto
+    ]
 
-    await autopost_3_videos_callback(context)
+    await autopost_4_videos_callback(context)
 
     mock_get_anecdote.assert_called_once()
-    assert mock_get_random.call_count == 3
+    assert mock_get_random.call_count == 4
     # Проверяем вызовы с правильными папками
     mock_get_random.assert_has_calls([
         call(Path("/mock/video-meme")),
         call(Path("/mock/video-ero")),
+        call(Path("/mock/video-auto")),
         call(Path("/mock/video-auto"))
     ])
-    assert mock_open_file.call_count == 3
-    assert mock_is_valid.call_count == 3
+    assert mock_open_file.call_count == 4
+    assert mock_is_valid.call_count == 4
 
     # Проверка отправки медиагруппы
     context.bot.send_media_group.assert_awaited_once()
     args, kwargs = context.bot.send_media_group.call_args
     assert kwargs['chat_id'] == -4737984792
-    assert len(kwargs['media']) == 3
+    assert len(kwargs['media']) == 4
     assert all(isinstance(m, InputMediaVideo) for m in kwargs['media'])
 
     # Проверка отправки анекдота
     context.bot.send_message.assert_awaited_once_with(chat_id=-4737984792, text="Анекдот Видео", read_timeout=180)
 
     # Проверка перемещения в архив
-    assert mock_move.call_count == 3
+    assert mock_move.call_count == 4
     mock_move.assert_has_calls([
+        call("/path/auto1.mp4", "video-auto"),
         call("/path/meme.mp4", "video-meme"),
         call("/path/ero.mp4", "video-ero"),
-        call("/path/auto.mp4", "video-auto")
+        call("/path/auto2.mp4", "video-auto")
     ], any_order=True)
 
 @pytest.mark.asyncio
@@ -248,46 +255,49 @@ async def test_autopost_3_videos_success(mock_move, mock_open_file, mock_is_vali
 @patch('autopost.is_valid_file', return_value=True)
 @patch('builtins.open', new_callable=mock_open, read_data=b'video data')
 @patch('autopost.move_file_to_archive')
-async def test_autopost_3_videos_fallback_logic(mock_move, mock_open_file, mock_is_valid, mock_get_random, mock_get_anecdote):
+async def test_autopost_4_videos_fallback_logic(mock_move, mock_open_file, mock_is_valid, mock_get_random, mock_get_anecdote):
     context = MagicMock()
     context.bot = AsyncMock()
     context.bot.send_media_group = AsyncMock()
     context.bot.send_message = AsyncMock()
 
-    # Имитируем: meme есть, ero нет, auto нет, но есть еще meme для замены
+    # Имитируем: первый auto есть, meme есть, ero нет, второй auto нет, но есть еще meme для замены
     mock_get_random.side_effect = [
-        "/path/meme1.mp4", # Первый вызов для video-meme
-        None,              # Второй вызов для video-ero (нет)
-        "/path/meme2.mp4", # Третий вызов для video-meme (замена ero)
-        None,              # Четвертый вызов для video-auto (нет)
-        "/path/meme3.mp4"  # Пятый вызов для video-meme (замена auto)
+        "/path/auto1.mp4",  # Первый вызов для первого video-auto
+        "/path/meme1.mp4",  # Второй вызов для video-meme
+        None,               # Третий вызов для video-ero (нет)
+        "/path/meme2.mp4",  # Четвертый вызов для video-meme (замена ero)
+        None,               # Пятый вызов для второго video-auto (нет)
+        "/path/meme3.mp4"   # Шестой вызов для video-meme (замена второго auto)
     ]
 
-    await autopost_3_videos_callback(context)
+    await autopost_4_videos_callback(context)
 
-    assert mock_get_random.call_count == 5
+    assert mock_get_random.call_count == 6
     mock_get_random.assert_has_calls([
-        call(Path("/mock/video-meme")), # Ищем meme
-        call(Path("/mock/video-ero")),  # Ищем ero - нет
-        call(Path("/mock/video-meme")), # Ищем meme (замена ero)
-        call(Path("/mock/video-auto")), # Ищем auto - нет
-        call(Path("/mock/video-meme"))  # Ищем meme (замена auto)
+        call(Path("/mock/video-auto")),  # Ищем первый auto
+        call(Path("/mock/video-meme")),  # Ищем meme
+        call(Path("/mock/video-ero")),   # Ищем ero - нет
+        call(Path("/mock/video-meme")),  # Ищем meme (замена ero)
+        call(Path("/mock/video-auto")),  # Ищем второй auto - нет
+        call(Path("/mock/video-meme"))   # Ищем meme (замена второго auto)
     ])
-    assert mock_open_file.call_count == 3
-    assert mock_is_valid.call_count == 3
+    assert mock_open_file.call_count == 4
+    assert mock_is_valid.call_count == 4
 
     context.bot.send_media_group.assert_awaited_once()
     args, kwargs = context.bot.send_media_group.call_args
-    assert len(kwargs['media']) == 3
+    assert len(kwargs['media']) == 4
 
     context.bot.send_message.assert_awaited_once_with(chat_id=-4737984792, text="Анекдот Фоллбэк", read_timeout=180)
 
-    assert mock_move.call_count == 3
-    # Проверяем, что файлы для замены ero и auto архивируются как video-meme
+    assert mock_move.call_count == 4
+    # Проверяем, что файлы для замены категорий архивируются с правильными категориями
     mock_move.assert_has_calls([
+        call("/path/auto1.mp4", "video-auto"),
         call("/path/meme1.mp4", "video-meme"),
         call("/path/meme2.mp4", "video-meme"), # ero заменен на meme
-        call("/path/meme3.mp4", "video-meme")  # auto заменен на meme
+        call("/path/meme3.mp4", "video-meme")  # второй auto заменен на meme
     ], any_order=True)
 
 # ... (Нужно добавить тесты на случаи нехватки видео для фолбека, ошибки отправки и т.д.) ...
@@ -371,7 +381,7 @@ async def test_stats_command(mock_count_wisdoms, mock_count_quiz, mock_get_stats
 @pytest.mark.asyncio
 @patch('autopost.get_available_stats')
 @patch('autopost.predict_10pics_posts')
-@patch('autopost.predict_3videos_posts')
+@patch('autopost.predict_4videos_posts')
 @patch('autopost.predict_full_days')
 async def test_next_posts_command(mock_predict_days, mock_predict_videos, mock_predict_pics, mock_get_stats):
     mock_predict_days.return_value = 9
