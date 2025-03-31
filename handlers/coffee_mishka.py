@@ -22,7 +22,7 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     Обработчик команды /coffee - отправляет изображение кофе.
     
     Имеет пасхалку: если команду вызвать несколько раз за короткий 
-    промежуток времени (10 секунд), отправляет специальное изображение.
+    промежуток времени (30 секунд), отправляет специальное изображение.
     
     Args:
         update: Объект обновления от Telegram
@@ -30,14 +30,12 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     global coffee_invocations
     now = time.time()
-    # Оставляем в списке только вызовы за последние 10 секунд
-    coffee_invocations = [t for t in coffee_invocations if now - t < 10]
+    # Оставляем в списке только вызовы за последние 30 секунд
+    coffee_invocations = [t for t in coffee_invocations if now - t < 30]
     coffee_invocations.append(now)
 
-    # Если накопилось хотя бы 2 вызова за 10 секунд — отправляем специальную картинку
-    if len(coffee_invocations) >= 2:
-        # Для теста easter_egg: сохраняем copy_list, очищаем coffee_invocations и возвращаем его после
-        copy_list = coffee_invocations.copy()
+    # Если накопилось 3 или больше вызовов за 30 секунд — отправляем специальную картинку
+    if len(coffee_invocations) >= 3:
         # Сбрасываем список, чтобы не сработать несколько раз подряд
         coffee_invocations = []
         with open("pictures/alcgaimer.jpg", "rb") as sc:
@@ -46,8 +44,17 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 photo=sc,
             )
         return
+    
+    # Если накопилось ровно 2 вызова за 30 секунд — отправляем вторую картинку кофе
+    elif len(coffee_invocations) == 2:
+        with open("pictures/coffee_2.jpg", "rb") as cf2:
+            await context.bot.send_photo(
+                chat_id=update.effective_chat.id,
+                photo=cf2,
+            )
+        return
 
-    # Если условие не выполнено — отправляем обычное изображение кофе
+    # Если условия не выполнены — отправляем обычное изображение кофе
     async def _coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open("pictures/coffee.jpg", "rb") as cf:
             await context.bot.send_photo(
