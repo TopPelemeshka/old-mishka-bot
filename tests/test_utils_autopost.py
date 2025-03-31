@@ -18,7 +18,6 @@ try:
         count_files_in_folder,
         get_available_stats,
         predict_10pics_posts,
-        predict_3videos_posts,
         predict_full_days,
         SEPARATOR, # Импортируем разделитель для тестов анекдотов
     )
@@ -358,33 +357,23 @@ def test_predict_10pics_posts():
     # Всего постов = floor(299 / 10) = 29
     assert predict_10pics_posts(stats) == 29
 
-def test_predict_3videos_posts():
-    stats = {
-        'video-meme': 10, 'video-ero': 5, 'video-auto': 20,
-        'anecdotes': 100  # Добавляем анекдоты
-        # Другие не важны
-    }
-    # Ожидаем: meme = 10; ero = 5; auto = 20
-    # 3videos = meme*1 + ero*1 + auto*1 = 10 + 5 + 20 = 35
-    # Всего постов = floor(35 / 3) = 11
-    assert predict_3videos_posts(stats) == 11
-
 def test_predict_full_days():
     stats = {
         'ero-anime': 12, 'ero-real': 8, 'single-meme': 5,
         'standart-art': 25, 'standart-meme': 31,
-        'video-meme': 10, 'video-ero': 5, 'video-auto': 20,
+        'video-meme': 10, 'video-ero': 5, 'video-auto': 20, # video-ero лимитирует видео до 5 постов
         'anecdotes': 50,
     }
-    # Из предыдущих тестов: pics_posts = 29, video_posts = 11
-    # Анекдотов 50
-    # Постов в день: 2 картинки + 1 видео + 1 анекдот = 4
-    # Ограничивающие факторы:
-    # Картинки: 29 постов / 2 поста в день = 14.5 дней
-    # Видео: 11 постов / 1 пост в день = 11 дней
-    # Анекдоты: 50 постов / 1 пост в день = 50 дней
-    # Минимальное = 11 дней
-    assert predict_full_days(stats) == 11
+    # Рассчет:
+    # pics_posts = predict_10pics_posts(stats) -> вернет 29 (допустим, эта функция верна)
+    # video_posts = predict_4videos_posts(stats) -> вернет 5 (лимит по video-ero)
+    # anecdote_count = 50
+    # Лимиты по дням:
+    # Картинки: 29 постов / 2 поста в день = 14.5 -> 14 дней
+    # Видео: 5 постов / 1 пост в день = 5 -> 5 дней
+    # Анекдоты: 50 анекдотов / 3 анекдота в день = 16.66... -> 16 дней
+    # Минимальное = 5 дней
+    assert predict_full_days(stats) == 5
 
 def test_predict_full_days_limited_by_pics():
      stats = {

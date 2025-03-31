@@ -385,11 +385,11 @@ def predict_4videos_posts(stats):
 def predict_full_days(stats):
     """
     Считает, сколько "полных дней" по схеме:
-    - 2 поста "10 картинок"
-    - 1 пост "3 видео"
+    - 3 поста "10 картинок"
+    - 1 пост "4 видео"
     - 1 анекдот
     в сутки
-    (т.е. всего 4 поста в день).
+    (т.е. всего 4 анекдота в день: 3 для картинок + 1 для видео).
     
     Для видео учитывается возможность замены video-auto и video-ero на video-meme.
     """
@@ -401,12 +401,12 @@ def predict_full_days(stats):
     anecdote_count = st.get('anecdotes', 0)
     
     # Для полного дня нужно:
-    # - 2 поста с картинками
+    # - 3 поста с картинками
     # - 1 пост с видео
-    # - 1 анекдот
-    pics_days = pics_posts / 2  # 2 поста с картинками в день
+    # - 4 анекдота (по одному на каждый пост)
+    pics_days = pics_posts / 3  # 3 поста с картинками в день
     video_days = video_posts    # 1 пост с видео в день
-    anecdote_days = anecdote_count  # 1 анекдот в день
+    anecdote_days = anecdote_count / 4 if anecdote_count else 0 # 4 анекдота в день
     
     # Минимальное количество полных дней
     days = min(int(pics_days), int(video_days), int(anecdote_days))

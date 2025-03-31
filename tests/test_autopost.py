@@ -261,26 +261,29 @@ async def test_autopost_4_videos_fallback_logic(mock_move, mock_open_file, mock_
     context.bot.send_media_group = AsyncMock()
     context.bot.send_message = AsyncMock()
 
-    # Имитируем: первый auto есть, meme есть, ero нет, второй auto нет, но есть еще meme для замены
+    # Имитируем: meme есть, ero нет, первый auto есть, второй auto нет, есть еще meme для замены
+    # Порядок side_effect должен соответствовать порядку вызовов в коде:
+    # 1. video-meme, 2. video-ero (None), 3. video-meme (fallback ero), 4. video-auto, 5. video-auto (None), 6. video-meme (fallback auto2)
     mock_get_random.side_effect = [
-        "/path/auto1.mp4",  # Первый вызов для первого video-auto
-        "/path/meme1.mp4",  # Второй вызов для video-meme
-        None,               # Третий вызов для video-ero (нет)
-        "/path/meme2.mp4",  # Четвертый вызов для video-meme (замена ero)
-        None,               # Пятый вызов для второго video-auto (нет)
-        "/path/meme3.mp4"   # Шестой вызов для video-meme (замена второго auto)
+        "/path/meme1.mp4",  # 1. Успешный вызов для video-meme
+        None,               # 2. Неудачный вызов для video-ero
+        "/path/meme2.mp4",  # 3. Успешный вызов для video-meme (замена ero)
+        "/path/auto1.mp4",  # 4. Успешный вызов для первого video-auto
+        None,               # 5. Неудачный вызов для второго video-auto
+        "/path/meme3.mp4"   # 6. Успешный вызов для video-meme (замена второго auto)
     ]
 
     await autopost_4_videos_callback(context)
 
     assert mock_get_random.call_count == 6
+    # Порядок assert_has_calls должен соответствовать порядку вызовов в коде
     mock_get_random.assert_has_calls([
-        call(Path("/mock/video-auto")),  # Ищем первый auto
-        call(Path("/mock/video-meme")),  # Ищем meme
-        call(Path("/mock/video-ero")),   # Ищем ero - нет
-        call(Path("/mock/video-meme")),  # Ищем meme (замена ero)
-        call(Path("/mock/video-auto")),  # Ищем второй auto - нет
-        call(Path("/mock/video-meme"))   # Ищем meme (замена второго auto)
+        call(Path("/mock/video-meme")),  # 1. Ищем meme
+        call(Path("/mock/video-ero")),   # 2. Ищем ero - нет
+        call(Path("/mock/video-meme")),  # 3. Ищем meme (замена ero)
+        call(Path("/mock/video-auto")),  # 4. Ищем первый auto
+        call(Path("/mock/video-auto")),  # 5. Ищем второй auto - нет
+        call(Path("/mock/video-meme"))   # 6. Ищем meme (замена второго auto)
     ])
     assert mock_open_file.call_count == 4
     assert mock_is_valid.call_count == 4
