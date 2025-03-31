@@ -1,0 +1,22 @@
+def get_random_wisdom() -> str | None:
+    """
+    Выбирает случайную мудрую фразу из списка и удаляет её,
+    чтобы избежать повторений.
+    
+    Returns:
+        str|None: Случайная мудрая фраза или None, если список пуст
+    """
+    ws = load_wisdoms()
+    if not ws:
+        return None
+    
+    # Выбираем случайную мудрость
+    w = random.choice(ws)
+    
+    # Удаляем выбранную мудрость из списка
+    ws.remove(w)
+    
+    # Сохраняем обновлённый список
+    save_wisdoms(ws)
+    
+    return w 
