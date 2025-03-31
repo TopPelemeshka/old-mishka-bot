@@ -14,7 +14,7 @@ from telegram.ext import ContextTypes
 # Папка, где хранятся звуковые файлы
 SOUNDS_DIR = "sound_panel"
 # Конфигурационный файл с отображаемыми названиями
-SOUND_CONFIG_FILE = "sound_config.json"
+SOUND_CONFIG_FILE = "config/sound_config.json"
 
 # Глобальное сопоставление коротких ID кнопок с именами файлов
 SOUND_MAPPING = {}

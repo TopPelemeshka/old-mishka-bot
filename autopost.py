@@ -28,8 +28,7 @@ from utils_autopost import (
 )
 
 from quiz import count_quiz_questions
-
-from wisdom import load_wisdoms
+from wisdom import count_wisdoms
 
 import state
 
@@ -268,16 +267,16 @@ async def autopost_3_videos_callback(context: ContextTypes.DEFAULT_TYPE):
 
 
 async def stop_autopost_command(update, context):
-    """Выключаем автопостинг (флаг autopost_enabled)."""
+    """Обработчик команды для отключения автопостинга."""
     state.autopost_enabled = False
-    state.save_state(state.autopost_enabled, state.quiz_enabled)  # <--- сохраним в файл
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Автопубликация остановлена.")
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Автопостинг отключён!")
 
 async def start_autopost_command(update, context):
-    """Включаем автопостинг."""
+    """Обработчик команды для включения автопостинга."""
     state.autopost_enabled = True
-    state.save_state(state.autopost_enabled, state.quiz_enabled)  # <--- сохраним в файл
-    await context.bot.send_message(chat_id=update.effective_chat.id, text="Автопубликация возобновлена.")
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Автопостинг включён!")
 
 async def stats_command(update, context):
     """Отображаем статистику остатков, прогнозы и узкое место (в том числе с учётом видео)."""
@@ -287,8 +286,8 @@ async def stats_command(update, context):
     max_3videos = predict_3videos_posts(stats)
     full_days = predict_full_days(stats)
     
-    wisdoms = load_wisdoms()
-    wisdom_count = len(wisdoms)
+    wisdom_count = count_wisdoms()
+    
     # Формируем словарь «отношений» для ключевых категорий.
     # Для изображений:
     #   ero-real: требуется 3 штуки на пост → количество постов = count / 3
@@ -417,8 +416,8 @@ async def next_posts_command(update, context):
     Показывает время следующего запуска постов
     и сколько до них осталось (в часах и минутах).
     """
-    # Получаем текущее время в UTC
-    now_utc = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+    # Получаем текущее время в UTC - исправляем на datetime.datetime.now(datetime.timezone.utc)
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
     
     # Получаем список всех заданий
     all_jobs = context.job_queue.jobs()

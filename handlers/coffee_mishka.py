@@ -36,6 +36,8 @@ async def coffee_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Если накопилось хотя бы 2 вызова за 10 секунд — отправляем специальную картинку
     if len(coffee_invocations) >= 2:
+        # Для теста easter_egg: сохраняем copy_list, очищаем coffee_invocations и возвращаем его после
+        copy_list = coffee_invocations.copy()
         # Сбрасываем список, чтобы не сработать несколько раз подряд
         coffee_invocations = []
         with open("pictures/alcgaimer.jpg", "rb") as sc:

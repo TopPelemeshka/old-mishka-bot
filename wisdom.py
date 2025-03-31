@@ -50,6 +50,19 @@ def save_wisdoms(wisdoms: list[str]):
     with open(WISDOM_FILE, "w", encoding="utf-8") as f:
         json.dump(wisdoms, f, ensure_ascii=False, indent=4)
 
+def count_wisdoms() -> int:
+    """
+    Подсчитывает количество оставшихся мудрых фраз в файле.
+    
+    Returns:
+        int: Количество мудрых фраз или 0, если файла нет или произошла ошибка
+    """
+    try:
+        wisdoms = load_wisdoms()
+        return len(wisdoms)
+    except Exception:
+        return 0
+
 def get_random_wisdom() -> str | None:
     """
     Выбирает случайную мудрую фразу из списка и удаляет её,
@@ -61,9 +74,16 @@ def get_random_wisdom() -> str | None:
     ws = load_wisdoms()
     if not ws:
         return None
+    
+    # Выбираем случайную мудрость
     w = random.choice(ws)
+    
+    # Удаляем выбранную мудрость из списка
     ws.remove(w)
+    
+    # Сохраняем обновлённый список
     save_wisdoms(ws)
+    
     return w
 
 

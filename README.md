@@ -136,6 +136,53 @@ sudo systemctl status mishka-bot
 - `state_data/` - данные состояния
 - `phrases/` - текстовые файлы с фразами
 
+## Тестирование
+
+Для запуска тестов используйте pytest:
+
+1. Активируйте виртуальное окружение:
+```bash
+source venv/bin/activate  # для Linux/Mac
+# или
+.\venv\Scripts\activate  # для Windows
+```
+
+2. Запустите все тесты:
+```bash
+pytest
+```
+
+3. Запустите конкретную группу тестов:
+```bash
+pytest tests/test_casino_main.py
+```
+
+4. Запустите конкретный тест:
+```bash
+pytest tests/test_quiz.py::test_generate_quiz_question
+```
+
+5. Запустите тесты с подробным выводом:
+```bash
+pytest -v
+```
+
+6. Запустите тесты с покрытием кода:
+```bash
+pytest --cov=.
+```
+
+### Структура тестов
+
+Проект содержит обширный набор тестов, охватывающих все основные функции бота:
+- `test_main.py` - тесты основного модуля
+- `test_casino_main.py`, `test_roulette.py`, `test_slots.py` - тесты казино
+- `test_quiz.py` - тесты системы викторин
+- `test_autopost.py` - тесты автопостинга
+- `test_scheduler.py` - тесты планировщика
+- `test_balance.py` - тесты системы баланса
+- И многие другие
+
 ## Лицензия
 
 MIT 
