@@ -42,8 +42,7 @@ config/sound_config.json
 
 # Assets and media files
 assets/
-pictures/
-sound_panel/
+# pictures/ и sound_panel/ больше не игнорируются
 
 # Database
 *.db
@@ -61,6 +60,8 @@ Thumbs.db
 # Content folders - ignore contents but not folders
 state_data/*
 !state_data/.gitkeep
+# Исключение для файлов-примеров в state_data
+!state_data/*.example.json
 
 post_materials/*
 !post_materials/.gitkeep
