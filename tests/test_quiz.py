@@ -36,6 +36,8 @@ except ImportError as e:
 @pytest.fixture(autouse=True)
 def clear_active_quizzes():
     ACTIVE_QUIZZES.clear()
+    # Устанавливаем режим теста, чтобы не модифицировать реальные файлы данных
+    state.is_test_mode = True
     # Также сбрасываем состояние, используемое в тестах
     if hasattr(state, 'available_questions'):
         state.available_questions = []
@@ -48,6 +50,8 @@ def clear_active_quizzes():
     if hasattr(state, 'quiz_enabled'):
         state.quiz_enabled = True # По умолчанию для большинства тестов
     yield
+    # После выполнения тестов сбрасываем режим теста
+    state.is_test_mode = False
 
 # --- Тесты файловых операций --- (Упрощенные примеры, аналогично balance/state)
 
@@ -80,12 +84,14 @@ def test_save_weekly_quiz_count(mock_dump, mock_file):
     {"question": "Q1", "options": ["a","b","c"], "answer": "a"},
     {"question": "Q2", "options": ["c","d","e"], "answer": "d"}
 ])
+@patch('quiz.save_quiz_questions')
 @patch('state.used_questions', new_callable=set, create=True)
-def test_get_random_question_success(mock_used_set, mock_load_func, mock_available_list):
+def test_get_random_question_success(mock_used_set, mock_save_func, mock_load_func, mock_available_list):
     # Исходная функция get_random_question ожидает список вопросов
     result = get_random_question()
     
     mock_load_func.assert_called_once()
+    mock_save_func.assert_not_called()
     assert result["question"] in ["Q1", "Q2"]
     # Не проверяем state.used_questions, т.к. вопросы удаляются из самого списка
 
@@ -95,10 +101,12 @@ def test_get_random_question_from_loaded():
     # Мокаем load_quiz_questions так, чтобы возвращал список с одним вопросом
     q_data = {"question": "Test", "options": ["A", "B"], "answer": "A"}
     
-    with patch('quiz.load_quiz_questions', return_value=[q_data]) as mock_load:
+    with patch('quiz.load_quiz_questions', return_value=[q_data]) as mock_load, \
+         patch('quiz.save_quiz_questions') as mock_save:
         result = get_random_question()
         
         mock_load.assert_called_once()
+        mock_save.assert_not_called()
         assert result == q_data  # Функция должна вернуть тот же словарь из списка
         # Из-за mock_load в обоих вызовах будет создаваться новый список с одним элементом,
         # так что проверять изменение списка не имеет смысла
@@ -120,6 +128,7 @@ async def test_quiz_post_callback_success():
     # Патчим конкретные значения через ключевые import
     with patch('quiz.get_random_question', mock_get_random_question), \
          patch('quiz.POST_CHAT_ID', -1001234567890), \
+         patch('quiz.save_weekly_quiz_count') as mock_save_weekly_count, \
          patch('state.quiz_enabled', True, create=True):
 
         context = MagicMock()
@@ -129,6 +138,7 @@ async def test_quiz_post_callback_success():
         await quiz_post_callback(context)
 
         mock_get_random_question.assert_called_once()
+        mock_save_weekly_count.assert_called_once()
         
         # Проверяем вызов send_poll без проверки порядка options, т.к. они перемешиваются
         assert context.bot.send_poll.await_count == 1
@@ -363,10 +373,12 @@ def test_count_quiz_questions(mock_load):
     mock_load.assert_called_once()
 
 @patch('quiz.load_quiz_questions', return_value=[])
-def test_get_random_question_all_empty(mock_load):
+@patch('quiz.save_quiz_questions')
+def test_get_random_question_all_empty(mock_save, mock_load):
     # Тест на случай, если нет вопросов
     result = get_random_question()
     mock_load.assert_called_once()
+    mock_save.assert_not_called()
     assert result is None
 
 

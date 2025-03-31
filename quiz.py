@@ -111,12 +111,22 @@ def get_random_question() -> dict | None:
     Returns:
         dict|None: Словарь с вопросом или None, если вопросов нет
     """
+    # Проверяем, запущен ли тест
+    is_test = hasattr(state, 'is_test_mode') and state.is_test_mode
+
+    # Загружаем вопросы
     questions = load_quiz_questions()
     if not questions:
         return None
+        
+    # Выбираем случайный вопрос
     question = random.choice(questions)
-    questions.remove(question)
-    save_quiz_questions(questions)
+    
+    # Удаляем вопрос из списка только в реальном режиме, не в тестах
+    if not is_test:
+        questions.remove(question)
+        save_quiz_questions(questions)
+        
     return question
 
 
