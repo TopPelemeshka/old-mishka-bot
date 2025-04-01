@@ -4,6 +4,7 @@
 - Отправлять случайные мемы и арты
 - Играть в казино (рулетка, слоты)
 - Отправлять случайные анекдоты и мудрости
+- Желать доброго утра и спокойной ночи
 - Воспроизводить звуки
 - И многое другое!
 
@@ -52,6 +53,7 @@ cp state_data/rating.example.json state_data/rating.json
 cp state_data/weekly_quiz_count.example.json state_data/weekly_quiz_count.json
 cp state_data/praise_state.example.json state_data/praise_state.json
 cp state_data/sleep_index.example.json state_data/sleep_index.json
+cp state_data/morning_index.example.json state_data/morning_index.json
 cp state_data/bot_state.example.json state_data/bot_state.json
 ```
 

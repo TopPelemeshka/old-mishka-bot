@@ -92,6 +92,7 @@ from handlers.chatid import chatid_command
 from handlers.technical_work import technical_work_command
 from handlers.sound import sound_command, sound_callback
 from handlers.sleep_command import sleep_command
+from handlers.morning_command import morning_command
 
 # Импортируем из autopost
 from autopost import (
@@ -335,6 +336,7 @@ def main() -> None:
     app.add_handler(CommandHandler("sound", sound_command))
     app.add_handler(CallbackQueryHandler(sound_callback, pattern=r"^sound:"))
     app.add_handler(CommandHandler("sleep", sleep_command))
+    app.add_handler(CommandHandler("morning", morning_command))
     app.add_handler(CommandHandler("logout", logout_command))
     app.add_handler(CommandHandler("reload_config", reload_config_command))
 
