@@ -53,8 +53,8 @@ async def test_balance_command_with_users(mock_load_balances):
     
     # Проверяем, что бот отправил сообщение с правильным форматированием
     expected_text = "💰 Баланс участников:\n\n"
-    expected_text += "Пользователь1: 100 💵\n"
     expected_text += "Пользователь2: 200 💵\n"
+    expected_text += "Пользователь1: 100 💵\n"
     expected_text += "Пользователь3: 50 💵\n"
     
     context.bot.send_message.assert_awaited_once_with(

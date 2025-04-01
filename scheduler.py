@@ -62,7 +62,7 @@ async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
                     media_files = data.get("media_files", [])
                     
                     if not media_files:
-                        await context.bot.send_message(chat_id=chat_id, text=text)
+                        await context.bot.send_message(chat_id=chat_id, text=text, read_timeout=300)
                     else:
                         # Создаем объекты InputMedia для отправки
                         media_to_send = []
@@ -105,7 +105,7 @@ async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
                                     media_obj = InputMediaDocument(media=file_id)
                                     media_to_send.append(media_obj)
                         
-                        await context.bot.send_media_group(chat_id=chat_id, media=media_to_send)
+                        await context.bot.send_media_group(chat_id=chat_id, media=media_to_send, read_timeout=300)
                 else:
                     # Обычная публикация
                     media = data.get("media")
@@ -113,15 +113,15 @@ async def reschedule_all_posts(context: ContextTypes.DEFAULT_TYPE):
                     
                     if media:
                         if media_type == "photo":
-                            await context.bot.send_photo(chat_id=chat_id, photo=media, caption=text)
+                            await context.bot.send_photo(chat_id=chat_id, photo=media, caption=text, read_timeout=300)
                         elif media_type == "video":
-                            await context.bot.send_video(chat_id=chat_id, video=media, caption=text)
+                            await context.bot.send_video(chat_id=chat_id, video=media, caption=text, read_timeout=300)
                         elif media_type == "audio":
-                            await context.bot.send_audio(chat_id=chat_id, audio=media, caption=text)
+                            await context.bot.send_audio(chat_id=chat_id, audio=media, caption=text, read_timeout=300)
                         else:
-                            await context.bot.send_message(chat_id=chat_id, text=text)
+                            await context.bot.send_message(chat_id=chat_id, text=text, read_timeout=300)
                     else:
-                        await context.bot.send_message(chat_id=chat_id, text=text)
+                        await context.bot.send_message(chat_id=chat_id, text=text, read_timeout=300)
                 
                 logger.info(f"Отложенная публикация {post_id} опубликована немедленно (запланировано на {scheduled_dt}).")
             except Exception as e:
@@ -456,7 +456,7 @@ async def delayed_post_callback(context: ContextTypes.DEFAULT_TYPE):
             
             if not media_files:
                 logger.error(f"[DEBUG] delayed_post_callback: Список медиа пуст для публикации {post_id}")
-                await bot.send_message(chat_id=chat_id, text=text)
+                await bot.send_message(chat_id=chat_id, text=text, read_timeout=300)
             else:
                 logger.info(f"[DEBUG] delayed_post_callback: Отправка медиа-группы с {len(media_files)} файлами")
                 
@@ -502,7 +502,7 @@ async def delayed_post_callback(context: ContextTypes.DEFAULT_TYPE):
                             media_to_send.append(media_obj)
                 
                 # Отправляем медиа-группу
-                await bot.send_media_group(chat_id=chat_id, media=media_to_send)
+                await bot.send_media_group(chat_id=chat_id, media=media_to_send, read_timeout=300)
                 logger.info(f"[DEBUG] delayed_post_callback: Медиа-группа для публикации {post_id} успешно отправлена")
         else:
             # Обычная публикация с одним или без медиа
@@ -511,15 +511,15 @@ async def delayed_post_callback(context: ContextTypes.DEFAULT_TYPE):
             
             if media:
                 if media_type == "photo":
-                    await bot.send_photo(chat_id=chat_id, photo=media, caption=text)
+                    await bot.send_photo(chat_id=chat_id, photo=media, caption=text, read_timeout=300)
                 elif media_type == "video":
-                    await bot.send_video(chat_id=chat_id, video=media, caption=text)
+                    await bot.send_video(chat_id=chat_id, video=media, caption=text, read_timeout=300)
                 elif media_type == "audio":
-                    await bot.send_audio(chat_id=chat_id, audio=media, caption=text)
+                    await bot.send_audio(chat_id=chat_id, audio=media, caption=text, read_timeout=300)
                 else:
-                    await bot.send_message(chat_id=chat_id, text=text)
+                    await bot.send_message(chat_id=chat_id, text=text, read_timeout=300)
             else:
-                await bot.send_message(chat_id=chat_id, text=text)
+                await bot.send_message(chat_id=chat_id, text=text, read_timeout=300)
             
             logger.info(f"[DEBUG] delayed_post_callback: Публикация {post_id} успешно отправлена")
     except Exception as e:
@@ -785,7 +785,8 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_photo(
             chat_id=POST_CHAT_ID, 
             photo=update.message.photo[-1].file_id, 
-            caption=message_text
+            caption=message_text,
+            read_timeout=300
         )
         await update.message.reply_text("Сообщение с фото отправлено в групповой чат.")
         return
@@ -794,7 +795,8 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_video(
             chat_id=POST_CHAT_ID, 
             video=update.message.video.file_id, 
-            caption=message_text
+            caption=message_text,
+            read_timeout=300
         )
         await update.message.reply_text("Сообщение с видео отправлено в групповой чат.")
         return
@@ -803,7 +805,8 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_audio(
             chat_id=POST_CHAT_ID, 
             audio=update.message.audio.file_id, 
-            caption=message_text
+            caption=message_text,
+            read_timeout=300
         )
         await update.message.reply_text("Сообщение с аудио отправлено в групповой чат.")
         return
@@ -812,7 +815,8 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_animation(
             chat_id=POST_CHAT_ID, 
             animation=update.message.animation.file_id, 
-            caption=message_text
+            caption=message_text,
+            read_timeout=300
         )
         await update.message.reply_text("Сообщение с GIF отправлено в групповой чат.")
         return
@@ -821,7 +825,8 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_document(
             chat_id=POST_CHAT_ID, 
             document=update.message.document.file_id, 
-            caption=message_text
+            caption=message_text,
+            read_timeout=300
         )
         await update.message.reply_text("Сообщение с документом отправлено в групповой чат.")
         return
@@ -830,7 +835,8 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_voice(
             chat_id=POST_CHAT_ID, 
             voice=update.message.voice.file_id, 
-            caption=message_text
+            caption=message_text,
+            read_timeout=300
         )
         await update.message.reply_text("Сообщение с голосовым сообщением отправлено в групповой чат.")
         return
@@ -838,16 +844,17 @@ async def talk_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif update.message.video_note:
         await context.bot.send_video_note(
             chat_id=POST_CHAT_ID, 
-            video_note=update.message.video_note.file_id
+            video_note=update.message.video_note.file_id,
+            read_timeout=300
         )
         if message_text:
-            await context.bot.send_message(chat_id=POST_CHAT_ID, text=message_text)
+            await context.bot.send_message(chat_id=POST_CHAT_ID, text=message_text, read_timeout=300)
         await update.message.reply_text("Видеосообщение отправлено в групповой чат.")
         return
     
     # Если нет медиа, отправляем простое текстовое сообщение
     elif message_text:
-        await context.bot.send_message(chat_id=POST_CHAT_ID, text=message_text)
+        await context.bot.send_message(chat_id=POST_CHAT_ID, text=message_text, read_timeout=300)
         await update.message.reply_text("Сообщение отправлено в групповой чат.")
         return
     
@@ -1065,14 +1072,23 @@ async def send_media_group_callback(context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_media_group(
             chat_id=POST_CHAT_ID,
-            media=media_to_send
+            media=media_to_send,
+            read_timeout=300
         )
         logger.info(f"[DEBUG] send_media_group_callback: Группа {media_group_id} успешно отправлена")
         
         # Отправляем подтверждение пользователю
         await context.bot.send_message(
             chat_id=group_data['chat_id'],
-            text=f"Альбом с {files_count} медиа отправлен в групповой чат."
+            text=f"Альбом с {files_count} медиа-файлами создан на {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}.",
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("Сегодня", callback_data=f"set_date:today:{media_group_id}"),
+                    InlineKeyboardButton("Завтра", callback_data=f"set_date:tomorrow:{media_group_id}"),
+                    InlineKeyboardButton("Выбрать дату", callback_data=f"set_date:custom:{media_group_id}")
+                ]
+            ]),
+            read_timeout=300
         )
     except Exception as e:
         logger.error(f"[DEBUG] send_media_group_callback: Ошибка при отправке группы {media_group_id}: {str(e)}")
@@ -1080,7 +1096,8 @@ async def send_media_group_callback(context: ContextTypes.DEFAULT_TYPE):
         # Сообщаем пользователю об ошибке
         await context.bot.send_message(
             chat_id=group_data['chat_id'],
-            text=f"Не удалось отправить альбом: {str(e)}"
+            text=f"Не удалось отправить альбом: {str(e)}",
+            read_timeout=300
         )
     
     # Удаляем данные группы, если они больше не нужны

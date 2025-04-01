@@ -393,6 +393,7 @@ async def test_weekly_quiz_reset_with_winner():
          patch('quiz.update_balance') as mock_update_balance, \
          patch('quiz.load_praises', return_value=["End!"]) as mock_load_praises, \
          patch('quiz.get_next_praise', return_value="End!") as mock_get_praise, \
+         patch('quiz.load_weekly_quiz_count', return_value=10) as mock_load_weekly_count, \
          patch('quiz.POST_CHAT_ID', 999):
 
         mock_load_rating.return_value = {
@@ -406,6 +407,7 @@ async def test_weekly_quiz_reset_with_winner():
         await weekly_quiz_reset(context)
 
         mock_load_rating.assert_called_once()
+        mock_load_weekly_count.assert_called_once()
         # Проверяем, что save_rating был вызван (не проверяем аргументы, т.к. в реальной реализации     
         # данные могут отличаться от наших ожиданий - нули для звезд или полное очищение)
         assert mock_save_rating.call_count == 1
@@ -422,6 +424,7 @@ async def test_weekly_quiz_reset_no_winner():
          patch('quiz.save_rating') as mock_save_rating, \
          patch('quiz.save_weekly_quiz_count') as mock_save_weekly, \
          patch('quiz.update_balance') as mock_update_balance, \
+         patch('quiz.load_weekly_quiz_count', return_value=5) as mock_load_weekly_count, \
          patch('quiz.POST_CHAT_ID', 999):
 
         context = MagicMock()

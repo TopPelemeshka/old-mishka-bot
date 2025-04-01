@@ -367,6 +367,7 @@ async def weekly_quiz_reset(context: ContextTypes.DEFAULT_TYPE):
 
     max_stars = max(x["stars"] for x in rating.values())
     winners = [uid for (uid, val) in rating.items() if val["stars"] == max_stars]
+    weekly_count = load_weekly_quiz_count()  # максимальное число звезд
 
     praises = load_praises()
     random_praise = get_next_praise(praises)
@@ -379,7 +380,7 @@ async def weekly_quiz_reset(context: ContextTypes.DEFAULT_TYPE):
     lines.append("")
     lines.append(random_praise)
     lines.append("")
-    lines.append("Звездный рейтинг за неделю:")
+    lines.append(f"Звездный рейтинг за неделю (всего вопросов: {weekly_count}):")
 
     all_sorted = sorted(rating.items(), key=lambda x: x[1]["stars"], reverse=True)
     for _, val in all_sorted:

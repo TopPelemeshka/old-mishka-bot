@@ -94,6 +94,7 @@ def test_media_filter_match(media_filter):
     message.photo = [MagicMock()] # Есть фото
     message.video = None
     message.audio = None
+    message.media_group_id = None  # Явно указываем, что это не альбом
     message.caption = "/post some arguments" # Caption начинается с /post
     update.effective_message = message
     assert media_filter.check_update(update) is True

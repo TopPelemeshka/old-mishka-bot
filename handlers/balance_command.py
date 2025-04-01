@@ -10,7 +10,8 @@ from balance import load_balances
 async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Обработчик команды /balance.
-    Отображает список всех пользователей и их текущий баланс монет.
+    Отображает список всех пользователей и их текущий баланс монет,
+    отсортированных по убыванию суммы баланса.
     
     Args:
         update: Объект обновления от Telegram
@@ -25,8 +26,11 @@ async def balance_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = "💰 Баланс участников:\n\n"
+    # Сортировка пользователей по балансу в порядке убывания
+    sorted_users = sorted(balances.items(), key=lambda x: x[1]["balance"], reverse=True)
+    
     # Здесь ключи – строки с user_id, значение – словарь с name и balance
-    for user_id, data in balances.items():
+    for user_id, data in sorted_users:
         name = data["name"]
         balance = data["balance"]
         text += f"{name}: {balance} 💵\n"
