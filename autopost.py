@@ -303,7 +303,6 @@ async def stats_command(update, context):
     # Получаем предсказания для разных типов постов
     max_10pics = predict_10pics_posts(stats)
     max_4videos = predict_4videos_posts(stats)
-    full_days = predict_full_days(stats)
     
     wisdom_count = count_wisdoms()
     
@@ -393,6 +392,55 @@ async def stats_command(update, context):
     else:
         bottleneck_category = "нет данных"
         bottleneck_posts = 0
+        
+    # Рассчитываем дни для картинок на основе bottleneck_category для картинок
+    pic_ratios = {k: v for k, v in ratios.items() if k in ['ero-real', 'ero-anime', 'standart-meme', 'anecdotes']}
+    if pic_ratios:
+        pics_bottleneck = min(pic_ratios.values())
+        pics_days = int(pics_bottleneck)
+    else:
+        pics_days = 0
+        
+    # Рассчитываем дни для видео с учетом всех возможных замен
+    video_days = 0
+    if stats.get("video-meme", 0):
+        # Количество видео-мемов
+        video_meme_count = stats.get("video-meme", 0)
+        # Количество видео-эро (может быть заменено видео-мемами)
+        video_ero_count = stats.get("video-ero", 0)
+        # Количество авто-видео (нужно 2 на пост, может быть заменено видео-мемами)
+        video_auto_count = stats.get("video-auto", 0)
+        # Количество анекдотов
+        anecdote_count = stats.get("anecdotes", 0)
+        
+        # Фаза 1: Используем video-auto, video-ero и 1 video-meme
+        auto_pairs = video_auto_count // 2  # Сколько пар video-auto (2 на пост)
+        phase1_posts = min(auto_pairs, video_ero_count, video_meme_count)
+        
+        remaining_meme = video_meme_count - phase1_posts
+        remaining_ero = video_ero_count - phase1_posts
+        remaining_anecdotes = anecdote_count - phase1_posts
+        
+        # Фаза 2: Заменяем video-auto на video-meme, используем video-ero
+        # Нужно 3 video-meme (1 основной + 2 замены auto) и 1 video-ero на пост
+        if remaining_meme >= 3 and remaining_ero > 0 and remaining_anecdotes > 0:
+            phase2_posts = min(remaining_meme // 3, remaining_ero, remaining_anecdotes)
+            
+            remaining_meme -= phase2_posts * 3
+            remaining_ero -= phase2_posts
+            remaining_anecdotes -= phase2_posts
+        else:
+            phase2_posts = 0
+        
+        # Фаза 3: Заменяем и video-auto и video-ero на video-meme
+        # Нужно 4 video-meme (1 основной + 2 замены auto + 1 замена ero) на пост
+        if remaining_meme >= 4 and remaining_anecdotes > 0:
+            phase3_posts = min(remaining_meme // 4, remaining_anecdotes)
+        else:
+            phase3_posts = 0
+        
+        # Общее количество постов
+        video_days = phase1_posts + phase2_posts + phase3_posts
 
     quiz_count = count_quiz_questions()
     text_lines = []
@@ -420,7 +468,8 @@ async def stats_command(update, context):
     text_lines.append(f"Цитат дня осталось: {wisdom_count}")
     text_lines.append("")
     text_lines.append("")
-    text_lines.append(f"<b>ПОСТОВ ОСТАЛОСЬ НА {full_days} ДНЕЙ.</b>")
+    text_lines.append(f"<b>ПОСТОВ С КАРТИНКАМИ ОСТАЛОСЬ НА {pics_days} ДНЕЙ.</b>")
+    text_lines.append(f"<b>ПОСТОВ С ВИДЕО ОСТАЛОСЬ НА {video_days} ДНЕЙ.</b>")
     text_lines.append(f"<b>ВИКТОРИН ОСТАЛОСЬ НА {round(quiz_count/8)} ДНЕЙ.</b>")
     text_lines.append(f"<b>ЦИТАТ ДНЯ ОСТАЛОСЬ НА {wisdom_count} ДНЕЙ.</b>")
 
