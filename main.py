@@ -101,7 +101,19 @@ from autopost import (
     next_posts_command
 )
 
-from scheduler import midnight_reset_callback, schedule_post_command, change_date_callback, custom_date_handler, reschedule_all_posts, parse_time_from_string
+from scheduler import (
+    midnight_reset_callback, 
+    schedule_post_command, 
+    change_date_callback, 
+    custom_date_handler, 
+    reschedule_all_posts, 
+    parse_time_from_string, 
+    list_scheduled_posts_command, 
+    delete_post_callback,
+    talk_command,
+    talk_media_group_command,
+    schedule_media_group_post_command
+)
 from quiz import poll_answer_handler, rating_command, weekly_quiz_reset
 from state import load_state
 
@@ -125,9 +137,135 @@ class MediaCommandFilter(BaseFilter):
         message = update.effective_message
         if not message:
             return False
-        # Проверяем, есть ли медиа и caption начинается с "/schedule_post"
+        # Проверяем, есть ли медиа и caption начинается с "/post"
         if (message.photo or message.video or message.audio) and message.caption:
+            # ВАЖНО: медиа-группы (альбомы) обрабатываются отдельным фильтром
+            if message.media_group_id is not None:
+                return False
             return message.caption.startswith("/post")
+        return False
+
+class MediaGroupCommandFilter(BaseFilter):
+    """
+    Фильтр для обработки команды /post, отправленной с медиа-группой (альбомом).
+    Срабатывает на сообщения с media_group_id, когда первое сообщение содержит caption с /post.
+    """
+    # Статические множества для отслеживания обрабатываемых групп
+    _post_media_groups = set()
+    
+    def check_update(self, update):
+        message = update.effective_message
+        if not message:
+            return False
+        
+        # Проверяем наличие media_group_id
+        media_group_id = message.media_group_id
+        if not media_group_id:
+            return False
+            
+        has_post_command = message.caption and message.caption.startswith("/post")
+        has_talk_command = message.caption and message.caption.startswith("/talk")
+        
+        # Для отладки выводим все сообщения с медиа-группами
+        caption_text = message.caption if message.caption else 'None'
+        logging.info(f"[DEBUG] MediaGroupCommandFilter: Проверка медиа-группы id={media_group_id}, caption='{caption_text}'")
+        
+        # Если это группа с командой /talk, игнорируем
+        if has_talk_command:
+            logging.info(f"[DEBUG] MediaGroupCommandFilter: Игнорируем группу {media_group_id} с командой /talk")
+            return False
+        
+        # Если группа уже обрабатывается, перехватываем все её сообщения
+        if media_group_id in self._post_media_groups:
+            logging.info(f"[DEBUG] MediaGroupCommandFilter: Перехватываем последующее сообщение группы {media_group_id}")
+            return True
+        
+        # Если это новая группа с командой /post, добавляем её в список обрабатываемых
+        if has_post_command:
+            self._post_media_groups.add(media_group_id)
+            logging.info(f"[DEBUG] MediaGroupCommandFilter: УСПЕШНО! Первое сообщение группы {media_group_id} с командой /post")
+            return True
+        
+        # Иначе игнорируем
+        return False
+        
+    @classmethod
+    def remove_group(cls, media_group_id):
+        """Удаляет идентификатор медиа-группы из списка обрабатываемых"""
+        if media_group_id in cls._post_media_groups:
+            cls._post_media_groups.remove(media_group_id)
+            logging.info(f"[DEBUG] MediaGroupCommandFilter: Удалена группа {media_group_id} из списка обрабатываемых")
+            return True
+        return False
+
+class TalkCommandFilter(BaseFilter):
+    """
+    Фильтр для обработки команды /talk, отправленной с одиночным медиа-вложением.
+    Игнорирует сообщения, принадлежащие медиа-группам (альбомам).
+    """
+    def check_update(self, update):
+        message = update.effective_message
+        if not message:
+            return False
+            
+        # Проверяем, что это НЕ часть медиа-группы (у него нет media_group_id)
+        if message.media_group_id is not None:
+            return False
+            
+        # Проверяем наличие любого типа медиа и caption начинается с "/talk"
+        if (message.photo or message.video or message.audio or message.animation or 
+            message.document or message.voice or message.video_note) and message.caption:
+            return message.caption.startswith("/talk")
+        return False
+
+class MediaGroupTalkCommandFilter(BaseFilter):
+    """
+    Фильтр для обработки команды /talk, отправленной с медиа-группой (альбомом).
+    Срабатывает на все сообщения из медиа-группы, если первое сообщение содержит caption с /talk.
+    """
+    # Статические множества для отслеживания обрабатываемых групп
+    _talk_media_groups = set()
+    
+    def check_update(self, update):
+        message = update.effective_message
+        if not message:
+            return False
+        
+        # Проверяем наличие media_group_id
+        media_group_id = message.media_group_id
+        if not media_group_id:
+            return False
+            
+        has_post_command = message.caption and message.caption.startswith("/post")
+        has_talk_command = message.caption and message.caption.startswith("/talk")
+        
+        # Если это группа с командой /post, игнорируем
+        if has_post_command:
+            logging.info(f"[DEBUG] MediaGroupTalkCommandFilter: Игнорируем медиа-группу id={media_group_id} с командой /post")
+            return False
+        
+        # Если группа уже обрабатывается, перехватываем все её сообщения
+        if media_group_id in self._talk_media_groups:
+            logging.info(f"[DEBUG] MediaGroupTalkCommandFilter: Перехватываем последующее сообщение группы {media_group_id}")
+            return True
+        
+        # Если это новая группа с командой /talk, добавляем её в список обрабатываемых
+        if has_talk_command:
+            self._talk_media_groups.add(media_group_id)
+            logging.info(f"[DEBUG] MediaGroupTalkCommandFilter: Обнаружена медиа-группа id={media_group_id} с командой /talk")
+            return True
+        
+        # Игнорируем сообщения без caption или с неизвестной командой
+        logging.info(f"[DEBUG] MediaGroupTalkCommandFilter: Игнорируем медиа-группу id={media_group_id} без команды")
+        return False
+        
+    @classmethod
+    def remove_group(cls, media_group_id):
+        """Удаляет идентификатор медиа-группы из списка обрабатываемых"""
+        if media_group_id in cls._talk_media_groups:
+            cls._talk_media_groups.remove(media_group_id)
+            logging.info(f"[DEBUG] MediaGroupTalkCommandFilter: Удалена группа {media_group_id} из списка обрабатываемых")
+            return True
         return False
 
 # Добавим обработчик команды для перезагрузки конфигураций
@@ -165,11 +303,19 @@ def main() -> None:
     app.add_handler(CommandHandler("chatid", chatid_command))
     app.add_handler(CommandHandler("technical_work", technical_work_command))
 
+    # Обработчики для команды /talk - должны быть зарегистрированы РАНЬШЕ, чем /post
+    app.add_handler(MessageHandler(MediaGroupTalkCommandFilter(), talk_media_group_command))  # Для групп медиа (альбомов)
+    app.add_handler(CommandHandler("talk", talk_command))  # Для текстовых сообщений
+    app.add_handler(MessageHandler(TalkCommandFilter(), talk_command))  # Для одиночных медиа
+    
     # Команды для управления постами
     app.add_handler(CommandHandler("post", schedule_post_command))
+    app.add_handler(MessageHandler(MediaGroupCommandFilter(), schedule_media_group_post_command))
     app.add_handler(MessageHandler(MediaCommandFilter(), schedule_post_command))
     app.add_handler(CallbackQueryHandler(change_date_callback, pattern=r"^set_date:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, custom_date_handler))
+    app.add_handler(CommandHandler("posts", list_scheduled_posts_command))
+    app.add_handler(CallbackQueryHandler(delete_post_callback, pattern=r"^delete_post:"))
 
     # Команды автопостинга
     app.add_handler(CommandHandler("stop_autopost", stop_autopost_command))

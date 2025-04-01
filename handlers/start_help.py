@@ -54,8 +54,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "• <b>/rating</b> – Показать звездный рейтинг ⭐\n"
             "• <b>/sound</b> – Звуковая панель 🔊\n"
             "• <b>/sleep</b> – Спокойной ночи 🌙\n"
-            "• <b>/post [HH:MM]</b> – Запланировать публикацию. Текст поста надо писать со следующей строчки, можно прикладывать фото, видео и звуки 📧\n\n"
-            "🔸 <b>Тайные команды</b>:\n"
+            "• <b>/logout</b> – ╚╝٩(̾●̮̮̃̾•̃̾)۶٩ 👁️\n"
+            "• <b>/post [HH:MM]</b> – Запланировать публикацию. Текст поста надо писать со следующей строчки, можно прикладывать фото, видео и звуки 📧\n"
+            "• <b>/talk [текст]</b> – Мгновенно отправить сообщение в групповой чат. Поддерживает все типы медиа 📣\n"
+            "• <b>/posts</b> – Просмотр и управление отложенными публикациями 📋\n\n"
+            "🔸 <b>Технические команды</b>:\n"
             "• <b>/chatid</b> – Узнать ID чата\n"
             "• <b>/getfileid</b> – Получить file_id отправленного GIF\n"
             "• <b>/start_autopost</b> – Включить автопубликацию постов\n"
@@ -74,5 +77,3 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             parse_mode="HTML"
         )
     await check_chat_and_execute(update, context, _help)
-
-#"• <b>/logout</b> – ╚╝٩(̾●̮̮̃̾•̃̾)۶٩ 👁️\n"
