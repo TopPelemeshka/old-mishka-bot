@@ -74,6 +74,9 @@ post_materials/*/*
 post_materials/anecdotes.txt
 post_materials/quiz.json
 post_materials/wisdom.json
+post_materials/betting_events.json
+# Исключение для примеров файлов в post_materials
+!post_materials/*.example.json
 
 post_archive/*
 !post_archive/.gitkeep

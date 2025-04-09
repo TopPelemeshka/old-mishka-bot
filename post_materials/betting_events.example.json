@@ -1,0 +1,46 @@
+{
+    "events": [
+        {
+            "id": 1,
+            "description": "Пример активного события",
+            "question": "Какой будет результат?",
+            "options": [
+                {
+                    "id": 1,
+                    "text": "Вариант А"
+                },
+                {
+                    "id": 2,
+                    "text": "Вариант Б"
+                }
+            ],
+            "result_description": "",
+            "is_active": true,
+            "winner_option_id": 1,
+            "results_published": false
+        },
+        {
+            "id": 2,
+            "description": "Пример завершенного события",
+            "question": "Какой командный счет?",
+            "options": [
+                {
+                    "id": 1,
+                    "text": "1:0"
+                },
+                {
+                    "id": 2,
+                    "text": "1:1"
+                },
+                {
+                    "id": 3,
+                    "text": "0:1"
+                }
+            ],
+            "result_description": "Матч закончился со счетом 1:1",
+            "is_active": false,
+            "winner_option_id": 2,
+            "results_published": true
+        }
+    ]
+}
