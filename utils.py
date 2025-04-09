@@ -83,3 +83,27 @@ def parse_time_from_string(time_str: str) -> datetime.time:
     hours_utc = (hours - TIMEZONE_OFFSET) % 24
     
     return datetime.time(hour=hours_utc, minute=minutes)
+
+def convert_local_to_utc(time_str: str) -> datetime.time:
+    """
+    Преобразует строку времени в формате HH:MM из локального часового пояса в UTC.
+    В отличие от parse_time_from_string, предназначена для прямого вызова.
+    
+    Args:
+        time_str: Строка времени в формате "часы:минуты"
+        
+    Returns:
+        Объект datetime.time в UTC
+    """
+    try:
+        # Парсим часы и минуты из строки
+        hours, minutes = map(int, time_str.split(':'))
+        
+        # Конвертируем из локального времени в UTC (вычитаем смещение часового пояса)
+        hours_utc = (hours - TIMEZONE_OFFSET) % 24
+        
+        return datetime.time(hour=hours_utc, minute=minutes)
+    except Exception as e:
+        logger.error(f"Ошибка при конвертации времени {time_str} в UTC: {e}")
+        # Возвращаем текущее время в UTC
+        return datetime.datetime.utcnow().time()

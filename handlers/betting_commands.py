@@ -23,7 +23,7 @@ from betting import (
     process_event_results
 )
 from balance import get_balance
-from config import schedule_config
+from config import schedule_config, TIMEZONE_OFFSET
 
 # Состояния для conversation handler
 BET_AMOUNT = 0
@@ -131,7 +131,7 @@ async def bet_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text += f"• {option_text}\n"
     
     text += f"\n💰 Выигрыш зависит от общей суммы ставок в тотализаторе!\n"
-    text += f"⏰ Результаты в {results_time}. Удачи! 🍀\n\n"
+    text += f"⏰ Результаты в {results_time} (UTC+{TIMEZONE_OFFSET}). Удачи! 🍀\n\n"
     text += "👇 Сделайте ваш выбор:"
     
     # Создаем клавиатуру с вариантами
@@ -561,7 +561,7 @@ async def publish_betting_event(context: CallbackContext):
     app = context.application # Получаем app из контекста
     from betting import get_next_active_event
     from config import POST_CHAT_ID
-    from config import schedule_config
+    from config import schedule_config, TIMEZONE_OFFSET
     import state
     
     # Проверяем, включена ли система ставок
@@ -572,6 +572,7 @@ async def publish_betting_event(context: CallbackContext):
     # Получаем времена из конфига
     betting_config = schedule_config.get("betting", {})
     results_time = betting_config.get("results_time", "21:00")
+    close_time = betting_config.get("close_time", "20:00")
     
     # Получаем следующее активное событие
     next_event = get_next_active_event()
@@ -602,7 +603,10 @@ async def publish_betting_event(context: CallbackContext):
         option_text = option.get("text", "")
         text += f"• {option_text}\n"
     
-    text += f"\n💰 Выигрыш зависит от общей суммы ставок в тотализаторе! Удачи! 🍀\n"
+    text += f"\n💰 Сделайте ваши ставки!\n"
+    text += f"⏰ Прием ставок до {close_time} (UTC+{TIMEZONE_OFFSET})\n"
+    text += f"🏆 Результаты в {results_time} (UTC+{TIMEZONE_OFFSET})\n\n"
+    text += "Чтобы сделать ставку, используйте команду /bet"
     
     # Создаем inline-клавиатуру с кнопкой для ставки
     keyboard = [

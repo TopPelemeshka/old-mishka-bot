@@ -13,6 +13,7 @@ try:
         check_chat_and_execute,
         random_time_in_range,
         parse_time_from_string,
+        convert_local_to_utc,
     )
 except ImportError:
     # Если тесты запускаются не из корня проекта, может потребоваться другая структура импорта
@@ -159,3 +160,23 @@ def test_parse_time_from_string_invalid_values():
         # Минуты должны быть в диапазоне 0..59, иначе datetime.time вызовет ошибку
         with pytest.raises(ValueError):
             parse_time_from_string("10:60")  # Здесь ValueError от datetime.time 
+
+# --- Тесты для convert_local_to_utc ---
+
+def test_convert_local_to_utc_valid():
+    """Тестирует конвертацию валидной строки времени в UTC."""
+    with patch('utils.TIMEZONE_OFFSET', 7):  # Мокаем смещение часового пояса UTC+7
+        assert convert_local_to_utc("14:25") == datetime.time(7, 25)  # 14:25 - 7 = 7:25 UTC
+        assert convert_local_to_utc("00:00") == datetime.time(17, 0)  # 00:00 - 7 = 17:00 UTC предыдущего дня (24-7=17)
+        assert convert_local_to_utc("23:59") == datetime.time(16, 59)  # 23:59 - 7 = 16:59 UTC
+
+def test_convert_local_to_utc_error_handling():
+    """Тестирует обработку ошибок в convert_local_to_utc."""
+    # Используем mocked_now для предсказуемого возврата текущего времени
+    mocked_now = datetime.datetime(2023, 1, 1, 12, 0)
+    
+    with patch('datetime.datetime') as mock_datetime:
+        mock_datetime.utcnow.return_value = mocked_now
+        # Передаем некорректный формат времени
+        time_result = convert_local_to_utc("invalid")
+        assert time_result == mocked_now.time()  # Должен вернуть текущее время 

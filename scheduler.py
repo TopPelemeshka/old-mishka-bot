@@ -18,7 +18,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, InputMe
 from autopost import autopost_10_pics_callback, autopost_4_videos_callback
 from quiz import quiz_post_callback, weekly_quiz_reset
 from wisdom import wisdom_post_callback
-from utils import random_time_in_range, parse_time_from_string
+from utils import random_time_in_range, parse_time_from_string, convert_local_to_utc
 
 import state  # Флаги автопубликации, викторины, мудрости и т.д.
 
@@ -1454,9 +1454,9 @@ def schedule_betting_events(job_queue, app):
     
     today = now.date()
     
-    # Время для публикации события - используем parse_time_from_string, которая уже конвертирует время в UTC
+    # Время для публикации события - используем новую функцию convert_local_to_utc
     publish_time_str = betting_config.get("publish_time", "11:00")
-    publish_time = parse_time_from_string(publish_time_str)
+    publish_time = convert_local_to_utc(publish_time_str)
     publish_datetime = datetime.datetime.combine(today, publish_time)
     
     # Запланируем публикацию события независимо от текущего времени
@@ -1465,11 +1465,11 @@ def schedule_betting_events(job_queue, app):
         when=publish_datetime,
         name="publish_betting_event"
     )
-    logging.info(f"Запланирована публикация события для ставок на {publish_datetime}")
+    logging.info(f"Запланирована публикация события для ставок на {publish_datetime} UTC (локальное время: {publish_time_str})")
     
     # Время для закрытия приема ставок
     close_time_str = betting_config.get("close_time", "20:00")
-    close_time = parse_time_from_string(close_time_str)
+    close_time = convert_local_to_utc(close_time_str)
     close_datetime = datetime.datetime.combine(today, close_time)
     
     # Запланируем закрытие приема ставок
@@ -1478,11 +1478,11 @@ def schedule_betting_events(job_queue, app):
         when=close_datetime,
         name="close_betting_event"
     )
-    logging.info(f"Запланировано закрытие приема ставок на {close_datetime}")
+    logging.info(f"Запланировано закрытие приема ставок на {close_datetime} UTC (локальное время: {close_time_str})")
     
     # Время для публикации результатов
     results_time_str = betting_config.get("results_time", "21:00")
-    results_time = parse_time_from_string(results_time_str)
+    results_time = convert_local_to_utc(results_time_str)
     results_datetime = datetime.datetime.combine(today, results_time)
     
     # Запланируем публикацию результатов
@@ -1491,4 +1491,4 @@ def schedule_betting_events(job_queue, app):
         when=results_datetime,
         name="process_betting_results"
     )
-    logging.info(f"Запланирована публикация результатов ставок на {results_datetime}")
+    logging.info(f"Запланирована публикация результатов ставок на {results_datetime} UTC (локальное время: {results_time_str})")
