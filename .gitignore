@@ -39,6 +39,7 @@ config/bot_config.json
 config/file_ids.json
 config/paths_config.json
 config/sound_config.json
+config/schedule_config.json
 
 # Assets and media files
 assets/
