@@ -138,7 +138,16 @@ from casino.slots import handle_slots_bet_callback
 from casino.roulette import handle_roulette_bet_callback, handle_change_bet
 
 # Импортируем обработчики команд для системы ставок
-from handlers.betting_commands import bet_command, bet_option_callback, bet_amount_callback, history_command, process_betting_results, start_betting_command, stop_betting_command
+from handlers.betting_commands import (
+    bet_command, 
+    bet_option_callback, 
+    bet_amount_callback, 
+    history_command,
+    update_betting_schedule_command,
+    process_betting_results, 
+    start_betting_command, 
+    stop_betting_command
+)
 
 class MediaCommandFilter(BaseFilter):
     """
@@ -374,6 +383,7 @@ def main() -> None:
     # Обработчики для системы ставок
     app.add_handler(CommandHandler("bet", bet_command))
     app.add_handler(CommandHandler("history", history_command))
+    app.add_handler(CommandHandler("update_betting", update_betting_schedule_command))
     app.add_handler(CallbackQueryHandler(bet_option_callback, pattern="^bet_option_"))
     app.add_handler(CallbackQueryHandler(bet_amount_callback, pattern="^bet_amount_|^bet_back$"))
     app.add_handler(CallbackQueryHandler(bet_command, pattern="^bet_event_"))

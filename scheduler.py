@@ -316,7 +316,7 @@ async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
         "morning_pics", "day_videos", "day_pics", "evening_pics",
         "quiz_1", "quiz_2", "quiz_3", "quiz_4", "quiz_5", "quiz_6", "quiz_7", "quiz_8",
         "wisdom",
-        "publish_betting_event", "process_betting_results",
+        "publish_betting_event", "process_betting_results", "close_betting_event",
         # Оставляем и старые имена для обратной совместимости
         "10pics_morning", "3videos_day", "10pics_evening", "10pics_day",
         "wisdom_of_day"
@@ -324,6 +324,13 @@ async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
     for name in names_to_remove:
         for job in job_queue.get_jobs_by_name(name):
             job.schedule_removal()
+    
+    # Отдельно удаляем betting задачи по паттерну, чтобы гарантировать очистку
+    all_jobs = job_queue.jobs()
+    for job in all_jobs:
+        if job.name and any(betting_name in job.name for betting_name in ["betting", "bet_", "publish_", "close_", "process_"]):
+            job.schedule_removal()
+            logging.info(f"Удалена задача: {job.name}")
     
     # Планируем новые задачи на сегодня
     schedule_autopost_for_today(job_queue)
@@ -1459,18 +1466,46 @@ def schedule_betting_events(job_queue, app):
     publish_time = convert_local_to_utc(publish_time_str)
     publish_datetime = datetime.datetime.combine(today, publish_time)
     
-    # Запланируем публикацию события независимо от текущего времени
+    # Проверяем, не прошло ли уже время публикации события
+    now_utc = datetime.datetime.utcnow()
+    
+    # Если текущее время уже больше запланированного, переносим на следующий день
+    if now_utc > publish_datetime:
+        tomorrow = today + datetime.timedelta(days=1)
+        tomorrow_weekday = (today_weekday + 1) % 7
+        
+        # Проверяем, включен ли следующий день в расписание
+        if tomorrow_weekday in betting_config.get("days", [0, 1, 2, 3, 4, 5, 6]):
+            publish_datetime = datetime.datetime.combine(tomorrow, publish_time)
+            close_time_str = betting_config.get("close_time", "20:00")
+            close_time = convert_local_to_utc(close_time_str)
+            close_datetime = datetime.datetime.combine(tomorrow, close_time)
+            
+            results_time_str = betting_config.get("results_time", "21:00")
+            results_time = convert_local_to_utc(results_time_str)
+            results_datetime = datetime.datetime.combine(tomorrow, results_time)
+            
+            logging.info(f"Время ставок на сегодня уже прошло. Планирую события на завтра ({tomorrow}).")
+        else:
+            logging.warning(f"Следующий день ({tomorrow_weekday}) не включен в расписание ставок. Пропускаем.")
+            return
+    else:
+        # Если время не прошло, используем сегодняшнюю дату
+        close_time_str = betting_config.get("close_time", "20:00")
+        close_time = convert_local_to_utc(close_time_str)
+        close_datetime = datetime.datetime.combine(today, close_time)
+        
+        results_time_str = betting_config.get("results_time", "21:00")
+        results_time = convert_local_to_utc(results_time_str)
+        results_datetime = datetime.datetime.combine(today, results_time)
+    
+    # Запланируем публикацию события
     job_queue.run_once(
         publish_betting_event, # Просто передаем функцию
         when=publish_datetime,
         name="publish_betting_event"
     )
     logging.info(f"Запланирована публикация события для ставок на {publish_datetime} UTC (локальное время: {publish_time_str})")
-    
-    # Время для закрытия приема ставок
-    close_time_str = betting_config.get("close_time", "20:00")
-    close_time = convert_local_to_utc(close_time_str)
-    close_datetime = datetime.datetime.combine(today, close_time)
     
     # Запланируем закрытие приема ставок
     job_queue.run_once(
@@ -1479,11 +1514,6 @@ def schedule_betting_events(job_queue, app):
         name="close_betting_event"
     )
     logging.info(f"Запланировано закрытие приема ставок на {close_datetime} UTC (локальное время: {close_time_str})")
-    
-    # Время для публикации результатов
-    results_time_str = betting_config.get("results_time", "21:00")
-    results_time = convert_local_to_utc(results_time_str)
-    results_datetime = datetime.datetime.combine(today, results_time)
     
     # Запланируем публикацию результатов
     job_queue.run_once(

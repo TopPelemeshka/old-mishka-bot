@@ -979,4 +979,52 @@ async def betting_callback_handler(update: Update, context: ContextTypes.DEFAULT
     
     except Exception as e:
         logging.error(f"Ошибка при обработке ставки: {e}")
-        await query.answer(f"Ошибка: {e}", show_alert=True) 
+        await query.answer(f"Ошибка: {e}", show_alert=True)
+
+async def update_betting_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Команда для принудительного обновления расписания ставок.
+    Полезна для администраторов, если расписание было изменено или произошел сбой.
+    
+    Args:
+        update: Объект Update от телеграма
+        context: Контекст бота
+    """
+    from utils import is_allowed_chat
+    from config import ADMIN_GROUP_ID
+    
+    # Проверяем, что команда вызвана в группе администраторов
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+    
+    # Проверка прав администратора
+    try:
+        member = await context.bot.get_chat_member(chat_id, user_id)
+        is_admin = member.status in ["administrator", "creator"]
+    except Exception:
+        is_admin = False
+    
+    if chat_id != ADMIN_GROUP_ID and not is_admin:
+        await context.bot.send_message(
+            chat_id=chat_id,
+            text="⚠️ Эта команда доступна только администраторам в специальной группе."
+        )
+        return
+    
+    # Удаляем старые задачи ставок
+    jobs = context.job_queue.jobs()
+    betting_jobs_removed = 0
+    
+    for job in jobs:
+        if job.name in ["publish_betting_event", "close_betting_event", "process_betting_results"]:
+            job.schedule_removal()
+            betting_jobs_removed += 1
+    
+    # Перепланируем задачи ставок
+    from scheduler import schedule_betting_events
+    schedule_betting_events(context.job_queue, context.application)
+    
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text=f"✅ Расписание ставок обновлено.\nУдалено старых задач: {betting_jobs_removed}"
+    ) 
