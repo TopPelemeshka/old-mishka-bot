@@ -8,7 +8,7 @@ import random
 import datetime
 from telegram import Update
 from telegram.ext import ContextTypes
-from config import ALLOWED_CHAT_IDS
+from config import ALLOWED_CHAT_IDS, TIMEZONE_OFFSET
 
 logger = logging.getLogger(__name__)
 
@@ -75,5 +75,11 @@ def parse_time_from_string(time_str: str) -> datetime.time:
     Returns:
         Объект datetime.time, соответствующий переданной строке
     """
+    # Парсим часы и минуты из строки
     hours, minutes = map(int, time_str.split(':'))
-    return datetime.time(hour=hours, minute=minutes)
+    
+    # Конвертируем из локального времени в UTC (вычитаем смещение часового пояса)
+    # Например, если локальное время 14:00 в UTC+7, то UTC время будет 7:00
+    hours_utc = (hours - TIMEZONE_OFFSET) % 24
+    
+    return datetime.time(hour=hours_utc, minute=minutes)

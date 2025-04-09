@@ -113,32 +113,13 @@ async def wisdom_post_callback(context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def start_wisdom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Обработчик команды для включения функции "Мудрость дня".
-    
-    Args:
-        update: Объект обновления от Telegram
-        context: Контекст обработчика
-    """
+    """Обработчик команды для включения мудрых мыслей."""
     state.wisdom_enabled = True
-    # Сохраняем текущее состояние вместе с другими флагами
-    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Мудрость дня включена!"
-    )
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Мудрые мысли включены!")
 
 async def stop_wisdom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Обработчик команды для отключения функции "Мудрость дня".
-    
-    Args:
-        update: Объект обновления от Telegram
-        context: Контекст обработчика
-    """
+    """Обработчик команды для отключения мудрых мыслей."""
     state.wisdom_enabled = False
-    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Мудрость дня отключена!"
-    )
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Мудрые мысли отключены!")

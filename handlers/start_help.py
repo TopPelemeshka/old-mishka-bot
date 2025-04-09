@@ -68,6 +68,8 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "• <b>/stop_quiz</b> – Отключить викторину и еженедельные итоги\n"
             "• <b>/start_wisdom</b> – Включить публикацию мудрости дня\n"
             "• <b>/stop_wisdom</b> – Отключить публикацию мудрости дня\n"
+            "• <b>/start_betting</b> – Включить систему ставок\n"
+            "• <b>/stop_betting</b> – Отключить систему ставок\n"
             "• <b>/status</b> – Показать баланс материалов для постов и викторин\n"
             "• <b>/jobs</b> – Узнать расписание задач\n\n"
             "• <b>/technical_work</b> – Уведомление о технических работах\n\n"

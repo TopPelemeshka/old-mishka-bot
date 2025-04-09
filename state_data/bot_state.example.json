@@ -1,5 +1,6 @@
 {
     "autopost_enabled": true,
     "quiz_enabled": true,
-    "wisdom_enabled": true
+    "wisdom_enabled": true,
+    "betting_enabled": true
 } 

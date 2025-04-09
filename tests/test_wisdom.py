@@ -172,6 +172,7 @@ async def test_wisdom_post_callback_disabled(mock_get_wisdom):
 @patch('wisdom.state.save_state') # Мокаем функцию сохранения состояния
 @patch('wisdom.state.autopost_enabled', True) # Пример других состояний
 @patch('wisdom.state.quiz_enabled', True)
+@patch('wisdom.state.betting_enabled', True)
 async def test_start_wisdom_command(mock_save_state):
     """Тестирует команду включения мудрости дня."""
     update = MagicMock()
@@ -188,11 +189,11 @@ async def test_start_wisdom_command(mock_save_state):
     # Проверяем, что флаг изменился на True
     assert wisdom.state.wisdom_enabled is True
     # Проверяем, что save_state была вызвана с правильными аргументами
-    mock_save_state.assert_called_once_with(True, True, True) # autopost, quiz, wisdom
+    mock_save_state.assert_called_once_with(True, True, True, True) # autopost, quiz, wisdom, betting
     # Проверяем отправку сообщения
     context.bot.send_message.assert_awaited_once_with(
         chat_id=9876,
-        text="Мудрость дня включена!"
+        text="Мудрые мысли включены!"
     )
 
 # --- Тесты для stop_wisdom_command ---
@@ -201,6 +202,7 @@ async def test_start_wisdom_command(mock_save_state):
 @patch('wisdom.state.save_state') # Мокаем функцию сохранения состояния
 @patch('wisdom.state.autopost_enabled', True) # Пример других состояний
 @patch('wisdom.state.quiz_enabled', False)
+@patch('wisdom.state.betting_enabled', True)
 async def test_stop_wisdom_command(mock_save_state):
     """Тестирует команду отключения мудрости дня."""
     update = MagicMock()
@@ -217,9 +219,9 @@ async def test_stop_wisdom_command(mock_save_state):
     # Проверяем, что флаг изменился на False
     assert wisdom.state.wisdom_enabled is False
     # Проверяем, что save_state была вызвана с правильными аргументами
-    mock_save_state.assert_called_once_with(True, False, False) # autopost, quiz, wisdom
+    mock_save_state.assert_called_once_with(True, False, False, True) # autopost, quiz, wisdom, betting
     # Проверяем отправку сообщения
     context.bot.send_message.assert_awaited_once_with(
         chat_id=9876,
-        text="Мудрость дня отключена!"
+        text="Мудрые мысли отключены!"
     ) 

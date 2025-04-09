@@ -1,0 +1,83 @@
+{
+    "active_bets": {
+        "1": {
+            "123456789": {
+                "user_name": "UserOne",
+                "bets": [
+                    {
+                        "option_id": 1,
+                        "amount": 100,
+                        "time": "2025-04-10 15:30:00"
+                    }
+                ]
+            },
+            "987654321": {
+                "user_name": "UserTwo",
+                "bets": [
+                    {
+                        "option_id": 2,
+                        "amount": 50,
+                        "time": "2025-04-10 15:45:00"
+                    }
+                ]
+            }
+        }
+    },
+    "history": [
+        {
+            "event_id": 2,
+            "description": "Футбольный матч: Команда A против Команды B",
+            "question": "Какая команда выиграет в сегодняшнем матче?",
+            "options": [
+                {
+                    "id": 1,
+                    "text": "Команда A"
+                },
+                {
+                    "id": 2,
+                    "text": "Ничья"
+                },
+                {
+                    "id": 3,
+                    "text": "Команда B"
+                }
+            ],
+            "correct_option": {
+                "id": 3,
+                "text": "Команда B"
+            },
+            "result_description": "Команда B выиграла со счетом 2:1",
+            "winner_option_id": 3,
+            "tote_coefficient": 2.5,
+            "total_winning_bets": 200,
+            "date": "2025-04-09",
+            "total_bets": 500,
+            "winners": [
+                {
+                    "user_id": 111222333,
+                    "user_name": "WinnerUser",
+                    "win_amount": 250,
+                    "bet_amount": 100,
+                    "streak": 2
+                }
+            ],
+            "losers": [
+                {
+                    "user_id": 444555666,
+                    "user_name": "LoserUser",
+                    "loss_amount": 300
+                }
+            ]
+        }
+    ],
+    "win_streaks": {
+        "111222333": {
+            "streak": 2,
+            "user_name": "WinnerUser"
+        },
+        "444555666": {
+            "streak": 0,
+            "user_name": "LoserUser"
+        }
+    }
+}

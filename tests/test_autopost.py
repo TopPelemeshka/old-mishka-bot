@@ -309,6 +309,7 @@ async def test_autopost_4_videos_fallback_logic(mock_move, mock_open_file, mock_
 
 @pytest.mark.asyncio
 @patch('autopost.state.save_state')
+@patch('autopost.state.betting_enabled', True)
 async def test_start_autopost_command(mock_save_state):
     update = MagicMock()
     update.effective_chat.id = 987
@@ -323,11 +324,12 @@ async def test_start_autopost_command(mock_save_state):
     await start_autopost_command(update, context)
 
     assert autopost.state.autopost_enabled is True
-    mock_save_state.assert_called_once_with(True, True, True) # autopost, quiz, wisdom
+    mock_save_state.assert_called_once_with(True, True, True, True) # autopost, quiz, wisdom, betting
     context.bot.send_message.assert_awaited_once_with(chat_id=987, text="Автопостинг включён!")
 
 @pytest.mark.asyncio
 @patch('autopost.state.save_state')
+@patch('autopost.state.betting_enabled', True)
 async def test_stop_autopost_command(mock_save_state):
     update = MagicMock()
     update.effective_chat.id = 987
@@ -342,7 +344,7 @@ async def test_stop_autopost_command(mock_save_state):
     await stop_autopost_command(update, context)
 
     assert autopost.state.autopost_enabled is False
-    mock_save_state.assert_called_once_with(False, False, True) # autopost, quiz, wisdom
+    mock_save_state.assert_called_once_with(False, False, True, True) # autopost, quiz, wisdom, betting
     context.bot.send_message.assert_awaited_once_with(chat_id=987, text="Автопостинг отключён!")
 
 @pytest.mark.asyncio

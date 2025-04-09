@@ -22,7 +22,12 @@ from utils import random_time_in_range, parse_time_from_string
 
 import state  # Флаги автопубликации, викторины, мудрости и т.д.
 
-from config import POST_CHAT_ID, schedule_config
+from config import POST_CHAT_ID, schedule_config, TIMEZONE_OFFSET
+
+# Добавляем импорт функций для системы ставок
+from handlers.betting_commands import publish_betting_event, process_betting_results, close_betting_event
+
+import functools
 
 logger = logging.getLogger(__name__)
 
@@ -306,10 +311,12 @@ async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
         context: Контекст от планировщика задач Telegram
     """
     job_queue = context.job_queue
+    app = context.application
     names_to_remove = [
         "morning_pics", "day_videos", "day_pics", "evening_pics",
         "quiz_1", "quiz_2", "quiz_3", "quiz_4", "quiz_5", "quiz_6", "quiz_7", "quiz_8",
         "wisdom",
+        "publish_betting_event", "process_betting_results",
         # Оставляем и старые имена для обратной совместимости
         "10pics_morning", "3videos_day", "10pics_evening", "10pics_day",
         "wisdom_of_day"
@@ -322,7 +329,8 @@ async def midnight_reset_callback(context: ContextTypes.DEFAULT_TYPE):
     schedule_autopost_for_today(job_queue)
     schedule_quizzes_for_today(job_queue)
     schedule_wisdom_for_today(job_queue)
-    logger.info("Расписание на сегодня обновлено (автопост, викторины, мудрость).")
+    schedule_betting_events(job_queue, app) # Передаем app, хотя он не используется напрямую
+    logger.info("Расписание на сегодня обновлено...")
 
 
 #
@@ -1030,14 +1038,6 @@ async def send_media_group_callback(context: ContextTypes.DEFAULT_TYPE):
             elif isinstance(media, InputMediaDocument):
                 media_obj = InputMediaDocument(media=media.media, caption=caption)
                 media_to_send.append(media_obj)
-            else:
-                # Если тип неизвестен, попробуем обработать как фото
-                logger.warning(f"[DEBUG] send_media_group_callback: Неизвестный тип медиа, пробуем как фото")
-                try:
-                    media_obj = InputMediaPhoto(media=media.media if hasattr(media, 'media') else media, caption=caption)
-                    media_to_send.append(media_obj)
-                except Exception as e:
-                    logger.error(f"[DEBUG] send_media_group_callback: Не удалось обработать медиа неизвестного типа: {e}")
         else:
             # Без caption
             if isinstance(media, InputMediaPhoto):
@@ -1052,14 +1052,6 @@ async def send_media_group_callback(context: ContextTypes.DEFAULT_TYPE):
             elif isinstance(media, InputMediaDocument):
                 media_obj = InputMediaDocument(media=media.media)
                 media_to_send.append(media_obj)
-            else:
-                # Если тип неизвестен, попробуем обработать как фото
-                logger.warning(f"[DEBUG] send_media_group_callback: Неизвестный тип медиа, пробуем как фото")
-                try:
-                    media_obj = InputMediaPhoto(media=media.media if hasattr(media, 'media') else media)
-                    media_to_send.append(media_obj)
-                except Exception as e:
-                    logger.error(f"[DEBUG] send_media_group_callback: Не удалось обработать медиа неизвестного типа: {e}")
     
     # Отправляем группу
     files_count = len(media_to_send)
@@ -1401,3 +1393,102 @@ async def collect_media_group_callback(context: ContextTypes.DEFAULT_TYPE):
     # Удаляем данные группы, т.к. они уже перенесены в отложенные публикации
     del context.bot_data['scheduled_media_groups'][media_group_id]
     logger.info(f"[DEBUG] collect_media_group_callback: Альбом {media_group_id} запланирован на {scheduled_dt}")
+
+
+def adjust_time_with_timezone(time_str):
+    """
+    Корректирует время из локального часового пояса в UTC.
+    Функция работает в паре с parse_time_from_string, которая уже конвертирует время из config.
+    
+    Args:
+        time_str (str): Строка времени в формате "HH:MM"
+        
+    Returns:
+        datetime.time: Скорректированное время UTC
+    """
+    try:
+        # Парсим время из строки
+        hours, minutes = map(int, time_str.split(':'))
+        
+        # Конвертируем из локального времени в UTC (вычитаем смещение часового пояса)
+        hours_utc = (hours - TIMEZONE_OFFSET) % 24
+        
+        # Возвращаем объект time
+        return datetime.time(hour=hours_utc, minute=minutes)
+    except Exception as e:
+        logging.error(f"Ошибка при корректировке времени {time_str}: {e}")
+        # В случае ошибки возвращаем исходное время
+        return datetime.datetime.strptime(time_str, "%H:%M").time()
+
+
+def schedule_betting_events(job_queue, app):
+    """
+    Планирует задачи для системы ставок на текущий день.
+    
+    Args:
+        job_queue: Очередь задач Telegram
+        app: Экземпляр telegram.ext.Application (больше не используется напрямую здесь,
+             но оставлен для совместимости с midnight_reset_callback)
+    """
+    from config import schedule_config
+    import state
+    
+    # Проверяем только глобальный флаг включения ставок
+    if not state.betting_enabled:
+        logging.info("Система ставок отключена. Пропускаем планирование.")
+        return
+    
+    # Получаем настройки из конфига
+    betting_config = schedule_config.get("betting", {})
+    
+    # Проверяем, нужно ли запускать сегодня
+    now = datetime.datetime.now()
+    today_weekday = now.weekday()
+    # Преобразуем день недели, т.к. в Python понедельник=0, воскресенье=6,
+    # а в конфиге используется воскресенье=0, суббота=6
+    today_weekday = (today_weekday + 1) % 7
+    
+    if today_weekday not in betting_config.get("days", [0, 1, 2, 3, 4, 5, 6]):
+        logging.info(f"День недели {today_weekday} не включен в расписание ставок. Пропускаем.")
+        return
+    
+    today = now.date()
+    
+    # Время для публикации события - используем parse_time_from_string, которая уже конвертирует время в UTC
+    publish_time_str = betting_config.get("publish_time", "11:00")
+    publish_time = parse_time_from_string(publish_time_str)
+    publish_datetime = datetime.datetime.combine(today, publish_time)
+    
+    # Запланируем публикацию события независимо от текущего времени
+    job_queue.run_once(
+        publish_betting_event, # Просто передаем функцию
+        when=publish_datetime,
+        name="publish_betting_event"
+    )
+    logging.info(f"Запланирована публикация события для ставок на {publish_datetime}")
+    
+    # Время для закрытия приема ставок
+    close_time_str = betting_config.get("close_time", "20:00")
+    close_time = parse_time_from_string(close_time_str)
+    close_datetime = datetime.datetime.combine(today, close_time)
+    
+    # Запланируем закрытие приема ставок
+    job_queue.run_once(
+        close_betting_event, # Просто передаем функцию
+        when=close_datetime,
+        name="close_betting_event"
+    )
+    logging.info(f"Запланировано закрытие приема ставок на {close_datetime}")
+    
+    # Время для публикации результатов
+    results_time_str = betting_config.get("results_time", "21:00")
+    results_time = parse_time_from_string(results_time_str)
+    results_datetime = datetime.datetime.combine(today, results_time)
+    
+    # Запланируем публикацию результатов
+    job_queue.run_once(
+        process_betting_results, # Просто передаем функцию
+        when=results_datetime,
+        name="process_betting_results"
+    )
+    logging.info(f"Запланирована публикация результатов ставок на {results_datetime}")

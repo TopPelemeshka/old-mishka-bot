@@ -14,7 +14,7 @@ import logging
 from telegram import InputMediaPhoto, InputMediaVideo
 from telegram.ext import ContextTypes
 
-from config import POST_CHAT_ID
+from config import POST_CHAT_ID, TIMEZONE_OFFSET
 from utils import random_time_in_range
 from utils_autopost import (
     get_top_anecdote_and_remove,
@@ -288,13 +288,13 @@ async def autopost_4_videos_callback(context: ContextTypes.DEFAULT_TYPE):
 async def stop_autopost_command(update, context):
     """Обработчик команды для отключения автопостинга."""
     state.autopost_enabled = False
-    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Автопостинг отключён!")
 
 async def start_autopost_command(update, context):
     """Обработчик команды для включения автопостинга."""
     state.autopost_enabled = True
-    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled)
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Автопостинг включён!")
 
 async def stats_command(update, context):
@@ -483,8 +483,9 @@ async def next_posts_command(update, context):
     """
     Показывает время следующего запуска постов
     и сколько до них осталось (в часах и минутах).
+    Отображает время в локальном часовом поясе согласно настройке TIMEZONE_OFFSET.
     """
-    # Получаем текущее время в UTC - исправляем на datetime.datetime.now(datetime.timezone.utc)
+    # Получаем текущее время в UTC
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     
     # Получаем список всех заданий
@@ -506,10 +507,14 @@ async def next_posts_command(update, context):
         if total_seconds < 0:
             continue
 
+        # Конвертируем время запуска в локальный часовой пояс
+        local_timezone = datetime.timezone(datetime.timedelta(hours=TIMEZONE_OFFSET))
+        job_next_local = job_next_utc.astimezone(local_timezone)
+        
         hours = int(total_seconds // 3600)
         minutes = int((total_seconds % 3600) // 60)
         lines.append(f"Задача: {job.name}")
-        lines.append(f"  Следующий запуск: {job.next_run_time.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+        lines.append(f"  Следующий запуск: {job_next_local.strftime('%Y-%m-%d %H:%M:%S')} (UTC+{TIMEZONE_OFFSET})")
         lines.append(f"  До запуска осталось: {hours} ч {minutes} мин\n")
 
     if not lines:

@@ -11,10 +11,12 @@ import os
 import random
 import shutil
 import logging
+import time
 from pathlib import Path
 
 SEPARATOR = "=================================================="
 
+import config
 from config import (
     ANECDOTES_FILE,
     ERO_ANIME_DIR,
@@ -198,8 +200,9 @@ def move_file_to_archive(filepath, category):
         if not os.path.exists(filepath):
             logger.warning(f"Не удалось переместить файл {filepath} в архив: файл не существует")
             return False
-            
-        # Определяем архивную директорию на основе категории
+        
+        # Определяем директорию архива в зависимости от категории
+        archive_dir = None
         if category == "ero-anime":
             archive_dir = ARCHIVE_ERO_ANIME_DIR
         elif category == "ero-real":
@@ -217,30 +220,28 @@ def move_file_to_archive(filepath, category):
         elif category == "video-auto":
             archive_dir = ARCHIVE_VIDEO_AUTO_DIR
         else:
-            # Для прочих категорий, если появятся
-            archive_dir = os.path.join("archive", category)
-
+            logger.warning(f"Неизвестная категория: {category}")
+            return False
+        
         # Создаем директорию архива, если она не существует
         os.makedirs(archive_dir, exist_ok=True)
-
-        basename = os.path.basename(filepath)
-        new_path = os.path.join(archive_dir, basename)
         
-        # Проверяем, существует ли уже файл с таким именем в архиве
+        # Получаем имя файла без пути
+        filename = os.path.basename(filepath)
+        new_path = os.path.join(archive_dir, filename)
+        
+        # Если уже есть файл с таким именем, добавляем к имени временную метку
         if os.path.exists(new_path):
-            # Добавляем к имени файла временную метку
-            base, ext = os.path.splitext(basename)
-            import time
-            timestamp = int(time.time())
-            new_basename = f"{base}_{timestamp}{ext}"
-            new_path = os.path.join(archive_dir, new_basename)
-            
-        # Перемещаем файл в архив
+            name, ext = os.path.splitext(filename)
+            timestamp = int(time.time())  # Текущая временная метка Unix
+            new_path = os.path.join(archive_dir, f"{name}_{timestamp}{ext}")
+        
+        # Перемещаем файл
         shutil.move(filepath, new_path)
-        logger.info(f"Файл {filepath} перемещен в архив: {new_path}")
+        logger.info(f"Файл {filepath} успешно перемещен в архив: {new_path}")
         return True
     except Exception as e:
-        logger.error(f"Ошибка при перемещении файла {filepath} в архив {archive_dir}: {str(e)}")
+        logger.error(f"Ошибка при перемещении файла {filepath} в архив: {str(e)}")
         return False
 
 def count_files_in_folder(folder):
@@ -260,20 +261,23 @@ def count_files_in_folder(folder):
 
 def get_available_stats():
     """
-    Возвращает словарь с информацией о количестве файлов в каждой категории + анекдоты.
+    Собирает статистику по доступным файлам для публикации.
+    
+    Returns:
+        dict: Словарь с количеством файлов каждого типа
     """
-    stats = {
-        "ero-anime": count_files_in_folder(ERO_ANIME_DIR),
-        "ero-real": count_files_in_folder(ERO_REAL_DIR),
-        "single-meme": count_files_in_folder(SINGLE_MEME_DIR),
-        "standart-art": count_files_in_folder(STANDART_ART_DIR),
-        "standart-meme": count_files_in_folder(STANDART_MEME_DIR),
-        "video-meme": count_files_in_folder(VIDEO_MEME_DIR),
-        "video-ero": count_files_in_folder(VIDEO_ERO_DIR),
-        "video-auto": count_files_in_folder(VIDEO_AUTO_DIR),
-        "anecdotes": count_anecdotes()
+    result = {
+        'ero-anime': count_files_in_folder(ERO_ANIME_DIR),
+        'ero-real': count_files_in_folder(ERO_REAL_DIR),
+        'single-meme': count_files_in_folder(SINGLE_MEME_DIR),
+        'standart-art': count_files_in_folder(STANDART_ART_DIR),
+        'standart-meme': count_files_in_folder(STANDART_MEME_DIR),
+        'video-meme': count_files_in_folder(VIDEO_MEME_DIR),
+        'video-ero': count_files_in_folder(VIDEO_ERO_DIR),
+        'video-auto': count_files_in_folder(VIDEO_AUTO_DIR),
+        'anecdotes': count_anecdotes(),
     }
-    return stats
+    return result
 
 def predict_10pics_posts(stats):
     """
@@ -290,6 +294,9 @@ def predict_10pics_posts(stats):
         9 - ero-real
         10 - standart-meme
     Каждый такой пост требует 1 анекдот.
+    
+    Returns:
+        dict: Словарь с количеством постов, которые можно сделать для каждой категории
     """
     # Будем копировать словарь, чтобы не портить оригинал
     st = stats.copy()
@@ -308,22 +315,17 @@ def predict_10pics_posts(stats):
     if 'single-meme' not in st:
         st['single-meme'] = 0
 
-    # Подсчитываем общую сумму контента
-    ero_content = min(st['ero-real'], st['ero-anime'] * 1.5) # Соотношение 3:2
-    art_content = st['standart-art'] 
-    meme_content = st['standart-meme'] + st['single-meme']
+    # Возвращаем количество постов, которые можно сделать для каждой категории
+    # Делим на 10, потому что у нас 10 картинок в посте
+    result = {
+        'ero-real': st['ero-real'] // 10,
+        'ero-anime': st['ero-anime'] // 10,
+        'standart-art': st['standart-art'] // 10,
+        'standart-meme': st['standart-meme'] // 10,
+        'single-meme': st['single-meme'] // 10
+    }
     
-    # Для каждого поста требуется: 1 ero, 3 art и 6 meme
-    # Соотношение 1:3:6
-    total_posts_content = ero_content*1 + art_content*3 + meme_content*6
-    
-    # Делим на 10 (количество картинок в посте) и округляем в меньшую сторону
-    count_posts = int(total_posts_content / 10)
-    
-    # Ограничиваем количество постов количеством доступных анекдотов
-    count_posts = min(count_posts, st['anecdotes'])
-    
-    return count_posts
+    return result
 
 def predict_4videos_posts(stats):
     """
@@ -392,23 +394,59 @@ def predict_full_days(stats):
     (т.е. всего 4 анекдота в день: 3 для картинок + 1 для видео).
     
     Для видео учитывается возможность замены video-auto и video-ero на video-meme.
+    
+    Returns:
+        dict: Словарь с количеством полных дней и ограничивающим фактором
     """
     st = stats.copy()
     
-    # Получаем количество постов от других предиктивных функций
-    pics_posts = predict_10pics_posts(st)
-    video_posts = predict_4videos_posts(st)
-    anecdote_count = st.get('anecdotes', 0)
+    # Получаем количество постов для разных категорий
+    pics_predictions = predict_10pics_posts(st)
+    total_pics_posts = sum(pics_predictions.values())
+    pics_days = total_pics_posts / 3  # 3 поста с картинками в день
     
-    # Для полного дня нужно:
-    # - 3 поста с картинками
-    # - 1 пост с видео
-    # - 4 анекдота (по одному на каждый пост)
-    pics_days = pics_posts / 3  # 3 поста с картинками в день
+    video_posts = predict_4videos_posts(st)
     video_days = video_posts    # 1 пост с видео в день
+    
+    anecdote_count = st.get('anecdotes', 0)
     anecdote_days = anecdote_count / 4 if anecdote_count else 0 # 4 анекдота в день
     
-    # Минимальное количество полных дней
-    days = min(int(pics_days), int(video_days), int(anecdote_days))
+    # Определяем ограничивающий фактор
+    limiting_factors = {
+        'pics': int(pics_days),
+        'videos': int(video_days),
+        'anecdotes': int(anecdote_days)
+    }
     
-    return days
+    min_days = min(limiting_factors.values())
+    
+    # Находим, какая категория ограничивает количество дней
+    limiting_factor = None
+    for factor, days in limiting_factors.items():
+        if days == min_days:
+            limiting_factor = factor
+            break
+    
+    # Если ограничение по картинкам, определяем конкретную категорию
+    if limiting_factor == 'pics':
+        min_category = None
+        min_value = float('inf')
+        for category, count in pics_predictions.items():
+            if count < min_value:
+                min_value = count
+                min_category = category
+        
+        limiting_factor = min_category
+    
+    # Если ограничение по видео и video-ero == 0, ограничивающий фактор - video-ero
+    # Иначе проверяем, меньше ли video-ero остальных видео
+    if limiting_factor == 'videos':
+        if st.get('video-ero', 0) == 0:
+            limiting_factor = 'video-ero'
+        elif st.get('video-ero', 0) <= st.get('video-meme', 0) // 2 and st.get('video-ero', 0) <= st.get('video-auto', 0) // 2:
+            limiting_factor = 'video-ero'
+    
+    return {
+        'days': min_days,
+        'limiting_factor': limiting_factor
+    }

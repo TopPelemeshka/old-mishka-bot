@@ -47,13 +47,21 @@ def load_config(config_file, use_cache=True):
             _config_cache[config_file] = config_data
             _config_mtime[config_file] = mtime
             return config_data
-    except Exception as e:
+    except FileNotFoundError:
         # В случае ошибки возвращаем кэшированное значение, если оно есть
         if config_file in _config_cache:
             return _config_cache[config_file]
-        # Иначе пробуем прочитать файл без проверки времени изменения
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        # Иначе пробрасываем ошибку дальше
+        raise
+    except json.JSONDecodeError:
+        # Если JSON невалидный, пробрасываем ошибку дальше
+        raise
+    except Exception as e:
+        # В случае других ошибок возвращаем кэшированное значение, если оно есть
+        if config_file in _config_cache:
+            return _config_cache[config_file]
+        # Иначе пробрасываем ошибку дальше
+        raise
 
 def reload_all_configs():
     """
@@ -67,6 +75,7 @@ def reload_all_configs():
     global ERO_ANIME_DIR, ERO_REAL_DIR, SINGLE_MEME_DIR, STANDART_ART_DIR, STANDART_MEME_DIR, VIDEO_MEME_DIR, VIDEO_ERO_DIR, VIDEO_AUTO_DIR
     global ARCHIVE_ERO_ANIME_DIR, ARCHIVE_ERO_REAL_DIR, ARCHIVE_SINGLE_MEME_DIR, ARCHIVE_STANDART_ART_DIR, ARCHIVE_STANDART_MEME_DIR, ARCHIVE_VIDEO_MEME_DIR, ARCHIVE_VIDEO_ERO_DIR, ARCHIVE_VIDEO_AUTO_DIR
     global ANECDOTES_FILE
+    global CHAT_ID, ADMIN_GROUP_ID, TIMEZONE_OFFSET
     
     # Загружаем все конфигурации, игнорируя кэш
     bot_config = load_config('bot_config.json', use_cache=False)
@@ -82,6 +91,11 @@ def reload_all_configs():
     COOLDOWN = bot_config['cooldown']
     MANUAL_USERNAMES = bot_config['manual_usernames']
     POST_CHAT_ID = bot_config['post_chat_id']
+    
+    # Настройки для системы ставок
+    CHAT_ID = bot_config['allowed_chat_ids'][0]  # Используем первый разрешенный чат как основной
+    ADMIN_GROUP_ID = bot_config.get('admin_group_id', CHAT_ID)  # Если не указана отдельная группа администраторов, используем основной чат
+    TIMEZONE_OFFSET = bot_config.get('timezone_offset', 0)  # Смещение часового пояса в часах
     
     # Создаем базовые пути с использованием Path
     MATERIALS_DIR = Path(paths_config['materials_dir'])
@@ -126,6 +140,11 @@ COOLDOWN = bot_config['cooldown']               # Задержка между к
 MANUAL_USERNAMES = bot_config['manual_usernames']  # Пользователи для команды @all
 POST_CHAT_ID = bot_config['post_chat_id']       # ID чата для публикаций
 
+# Настройки для системы ставок
+CHAT_ID = bot_config['allowed_chat_ids'][0]  # Используем первый разрешенный чат как основной
+ADMIN_GROUP_ID = bot_config.get('admin_group_id', CHAT_ID)  # Если не указана отдельная группа администраторов, используем основной чат
+TIMEZONE_OFFSET = bot_config.get('timezone_offset', 0)  # Смещение часового пояса в часах
+
 # Создаем базовые пути с использованием Path
 MATERIALS_DIR = Path(paths_config['materials_dir'])  # Директория с материалами
 ARCHIVE_DIR = Path(paths_config['archive_dir'])      # Директория с архивами
@@ -152,3 +171,4 @@ ARCHIVE_VIDEO_AUTO_DIR = Path(paths_config['archive_dirs']['video_auto'])
 
 # Путь к файлу с анекдотами
 ANECDOTES_FILE = Path(paths_config['anecdotes_file'])
+

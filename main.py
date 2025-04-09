@@ -19,9 +19,17 @@ from telegram.ext import (
     CallbackQueryHandler,
     PollAnswerHandler,
     filters,
+    CallbackContext
 )
 
 from telegram.ext.filters import BaseFilter
+
+# Отладочная функция для логирования всех callback запросов
+async def log_all_callbacks(update, context):
+    query = update.callback_query
+    if query:
+        logging.info(f"DEBUG: Получен callback запрос: {query.data}")
+    return  # Передаем управление дальше
 
 # Настройка логирования
 def setup_logging():
@@ -128,6 +136,9 @@ from handlers.balance_command import balance_command
 from casino.casino_main import casino_command, casino_callback_handler
 from casino.slots import handle_slots_bet_callback
 from casino.roulette import handle_roulette_bet_callback, handle_change_bet
+
+# Импортируем обработчики команд для системы ставок
+from handlers.betting_commands import bet_command, bet_option_callback, bet_amount_callback, history_command, process_betting_results, start_betting_command, stop_betting_command
 
 class MediaCommandFilter(BaseFilter):
     """
@@ -286,6 +297,9 @@ def main() -> None:
     # Считываем состояние флагов до того, как отдадим бота в run_polling
     load_state()
 
+    # Добавляем отладочный обработчик для всех callback запросов
+    app.add_handler(CallbackQueryHandler(log_all_callbacks), group=-1)
+
     # Команды базовые
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
@@ -331,6 +345,8 @@ def main() -> None:
     app.add_handler(CommandHandler("stop_quiz", stop_quiz_command))
     app.add_handler(CommandHandler("start_wisdom", start_wisdom_command))
     app.add_handler(CommandHandler("stop_wisdom", stop_wisdom_command))
+    app.add_handler(CommandHandler("start_betting", start_betting_command))
+    app.add_handler(CommandHandler("stop_betting", stop_betting_command))
 
     # Звуковая панель и другие команды
     app.add_handler(CommandHandler("sound", sound_command))
@@ -355,6 +371,13 @@ def main() -> None:
     ))
     app.add_handler(CallbackQueryHandler(handle_change_bet, pattern=r"^change_bet:"))
 
+    # Обработчики для системы ставок
+    app.add_handler(CommandHandler("bet", bet_command))
+    app.add_handler(CommandHandler("history", history_command))
+    app.add_handler(CallbackQueryHandler(bet_option_callback, pattern="^bet_option_"))
+    app.add_handler(CallbackQueryHandler(bet_amount_callback, pattern="^bet_amount_|^bet_back$"))
+    app.add_handler(CallbackQueryHandler(bet_command, pattern="^bet_event_"))
+    app.add_handler(CallbackQueryHandler(history_command, pattern="^history_betting$"))
 
     # Планировщик задач
     # Назначаем "ночной" джоб для сброса расписания
@@ -364,7 +387,8 @@ def main() -> None:
         midnight_reset_callback,
         time=midnight_time,
         days=tuple(midnight_config['days']),
-        name="reset_schedule"
+        name="reset_schedule",
+        job_kwargs={'misfire_grace_time': 3600}  # Добавим запас времени
     )
 
     # Еженедельный сброс викторин
@@ -374,14 +398,19 @@ def main() -> None:
         weekly_quiz_reset,
         time=quiz_reset_time,
         days=tuple(quiz_reset_config['days']),
-        name="weekly_quiz_reset"
+        name="weekly_quiz_reset",
+        job_kwargs={'misfire_grace_time': 3600}
     )
 
     # При первом запуске бота — сразу же сделаем сброс расписания
-    # чтобы назначить на сегодня (иначе оно впервые сработает только в полночь).
+    # Планировщик автоматически передаст контекст в callback
     app.job_queue.run_once(midnight_reset_callback, 0)
+    
     # Проверяем, есть ли отложенные публикации, время которых уже прошло
     app.job_queue.run_once(reschedule_all_posts, 0)
+    
+    # Проверяем, есть ли неопубликованные результаты ставок
+    app.job_queue.run_once(process_betting_results, 1)  # Запускаем с задержкой в 1 секунду после запуска бота
 
     app.run_polling()
 

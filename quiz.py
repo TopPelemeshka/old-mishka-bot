@@ -361,11 +361,26 @@ async def weekly_quiz_reset(context: ContextTypes.DEFAULT_TYPE):
     if not rating:
         await context.bot.send_message(
             chat_id=POST_CHAT_ID,
-            text="На этой неделе никто не набрал звёздочек 😢"
+            text="На этой неделе никто не набрал звёздочек ��"
         )
+        # Сбрасываем количество вопросов викторины за неделю:
+        save_weekly_quiz_count(0)
+        save_rating({})
         return
 
-    max_stars = max(x["stars"] for x in rating.values())
+    max_stars = max((x["stars"] for x in rating.values()), default=0)
+    
+    # Если никто не набрал звезд
+    if max_stars == 0:
+        await context.bot.send_message(
+            chat_id=POST_CHAT_ID,
+            text="На этой неделе никто не набрал звёздочек 😢"
+        )
+        # Сбрасываем количество вопросов викторины за неделю:
+        save_weekly_quiz_count(0)
+        save_rating(rating)
+        return
+
     winners = [uid for (uid, val) in rating.items() if val["stars"] == max_stars]
     weekly_count = load_weekly_quiz_count()  # максимальное число звезд
 
@@ -417,19 +432,13 @@ def count_quiz_questions() -> int:
 # Новые команды для включения/выключения викторины
 #
 async def start_quiz_command(update, context):
+    """Обработчик команды для включения викторин."""
     state.quiz_enabled = True
-    # Передаём текущее значение глобальных переменных явно
-    state.save_state(state.autopost_enabled, state.quiz_enabled)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Викторина и еженедельные итоги включены!"
-    )
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Викторины включены!")
 
 async def stop_quiz_command(update, context):
+    """Обработчик команды для отключения викторин."""
     state.quiz_enabled = False
-    print("DEBUG: quiz_enabled =", state.quiz_enabled)
-    state.save_state(state.autopost_enabled, state.quiz_enabled)
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="Викторина и еженедельные итоги выключены!"
-    )
+    state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
+    await context.bot.send_message(chat_id=update.effective_chat.id, text="Викторины отключены!")
