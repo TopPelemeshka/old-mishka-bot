@@ -411,6 +411,10 @@ def main() -> None:
     
     # Проверяем, есть ли неопубликованные результаты ставок
     app.job_queue.run_once(process_betting_results, 1)  # Запускаем с задержкой в 1 секунду после запуска бота
+    
+    # Явно запускаем планирование задач системы ставок на сегодня
+    from scheduler import schedule_betting_events
+    schedule_betting_events(app.job_queue, app)
 
     app.run_polling()
 
