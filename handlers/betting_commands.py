@@ -384,18 +384,22 @@ async def bet_amount_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Получаем обновленный баланс
     new_balance = get_balance(user_id)
     
-    # Упрощенный текст сообщения о ставке
-    text = f"✅ Ставка {user_name} принята!\n\n"
-    text += f"🎯 *{option_text}*\n"
-    text += f"💸 Сумма: *{amount}* 💵\n\n"
-    
-    # Отправляем новое сообщение вместо редактирования
+    # Экранируем символы Markdown в имени пользователя, если оно используется
+    safe_user_name = user_name
+    for char in ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']:
+        safe_user_name = safe_user_name.replace(char, f'\\{char}')
+
+    # Упрощенный текст сообщения о ставке без Markdown
+    text = f"✅ Ставка {safe_user_name} принята!\n\n"
+    text += f"🎯 {option_text}\n"
+    text += f"💸 Сумма: {amount} 💵\n\n"
+
+    # Отправляем новое сообщение без Markdown
     message = await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=text,
-        parse_mode="Markdown"
+        text=text
     )
-    
+
     logging.info(f"Отправлено сообщение о размещении ставки: message_id={message.message_id}")
     
     # Сохраняем сообщения для удаления

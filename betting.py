@@ -177,56 +177,62 @@ def place_bet(user_id, user_name, event_id, option_id, amount):
     user_balance = get_balance(user_id)
     if user_balance < amount:
         return False
-    
+
     # Проверяем существование события
     events_data = load_betting_events()
     event = None
-    
+
     for e in events_data.get("events", []):
         if str(e.get("id")) == str(event_id):
             event = e
             break
-    
+
     if not event:
         return False
-    
+
     # Проверяем существование выбранного варианта
     option_exists = False
     for option in event.get("options", []):
         if str(option.get("id")) == str(option_id):
             option_exists = True
             break
-    
+
     if not option_exists:
         return False
-    
-    # Снимаем деньги с баланса
-    update_balance(user_id, -amount)
-    
-    # Сохраняем ставку
+
+    # Загружаем данные о ставках
     betting_data = load_betting_data()
-    
+
     user_id_str = str(user_id)
     event_id_str = str(event_id)
-    
+
     if event_id_str not in betting_data["active_bets"]:
         betting_data["active_bets"][event_id_str] = {}
-    
+
     if user_id_str not in betting_data["active_bets"][event_id_str]:
         betting_data["active_bets"][event_id_str][user_id_str] = {
             "user_name": user_name,
             "bets": []
         }
-    
+
     # Добавляем ставку в список ставок пользователя
     betting_data["active_bets"][event_id_str][user_id_str]["bets"].append({
         "option_id": option_id,
         "amount": amount,
         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     })
-    
-    save_betting_data(betting_data)
-    return True
+
+    try:
+        # Сначала сохраняем ставку
+        save_betting_data(betting_data)
+        
+        # Если сохранение прошло успешно, снимаем деньги с баланса
+        update_balance(user_id, -amount)
+        
+        return True
+    except Exception as e:
+        logging.error(f"Ошибка при сохранении ставки: {e}")
+        return False
 
 def process_event_results(event_id, winner_option_id):
     """
