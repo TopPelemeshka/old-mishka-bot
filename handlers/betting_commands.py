@@ -10,6 +10,7 @@ import logging
 import json
 import datetime
 import time
+from unittest.mock import MagicMock
 
 from betting import (
     load_betting_events, 
@@ -811,6 +812,58 @@ async def stop_betting_command(update: Update, context: ContextTypes.DEFAULT_TYP
     state.betting_enabled = False
     state.save_state(state.autopost_enabled, state.quiz_enabled, state.wisdom_enabled, state.betting_enabled)
     await context.bot.send_message(chat_id=update.effective_chat.id, text="Система ставок отключена!")
+
+async def close_betting_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Обработчик команды для ручного закрытия текущего активного события для ставок.
+    Используется администраторами, когда нужно вручную закрыть прием ставок.
+    """
+    from betting import load_betting_events, publish_event, get_next_active_event
+    
+    # Создаем контекст для функции close_betting_event
+    context_for_close = MagicMock()
+    context_for_close.application = context.application
+    
+    # Проверяем, есть ли активное событие
+    active_event = get_next_active_event()
+    
+    if not active_event:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Нет активных событий для закрытия."
+        )
+        return
+    
+    # Вызываем функцию закрытия события
+    await close_betting_event(context_for_close)
+    
+    # Проверяем, изменился ли статус события
+    events_data = load_betting_events()
+    event_status_changed = True
+    
+    for event in events_data.get("events", []):
+        if event.get("id") == active_event.get("id") and event.get("is_active", True):
+            event_status_changed = False
+            break
+    
+    if event_status_changed:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"✅ Событие успешно закрыто: {active_event.get('description')}"
+        )
+    else:
+        # Попробуем закрыть напрямую
+        success = publish_event(active_event.get("id"))
+        if success:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"✅ Событие успешно закрыто напрямую: {active_event.get('description')}"
+            )
+        else:
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=f"❌ Не удалось закрыть событие: {active_event.get('description')}"
+            )
 
 async def results_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """

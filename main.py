@@ -137,7 +137,7 @@ from casino.casino_main import casino_command, casino_callback_handler
 from casino.slots import handle_slots_bet_callback
 from casino.roulette import handle_roulette_bet_callback, handle_change_bet
 
-# Импортируем обработчики команд для системы ставок
+# Изменить импорт обработчиков команд betting
 from handlers.betting_commands import (
     bet_command, 
     bet_option_callback, 
@@ -146,7 +146,11 @@ from handlers.betting_commands import (
     update_betting_schedule_command,
     process_betting_results, 
     start_betting_command, 
-    stop_betting_command
+    stop_betting_command,
+    close_betting_command,
+    results_command,
+    results_callback_handler,
+    betting_callback_handler
 )
 
 class MediaCommandFilter(BaseFilter):
@@ -383,7 +387,11 @@ def main() -> None:
     # Обработчики для системы ставок
     app.add_handler(CommandHandler("bet", bet_command))
     app.add_handler(CommandHandler("history", history_command))
-    app.add_handler(CommandHandler("update_betting", update_betting_schedule_command))
+    app.add_handler(CommandHandler("startbetting", start_betting_command, filters=filters.User(username=ADMIN_USERNAMES)))
+    app.add_handler(CommandHandler("stopbetting", stop_betting_command, filters=filters.User(username=ADMIN_USERNAMES)))
+    app.add_handler(CommandHandler("close_betting", close_betting_command, filters=filters.User(username=ADMIN_USERNAMES)))
+    app.add_handler(CommandHandler("results", results_command, filters=filters.User(username=ADMIN_USERNAMES)))
+    app.add_handler(CommandHandler("update_betting_schedule", update_betting_schedule_command, filters=filters.User(username=ADMIN_USERNAMES)))
     app.add_handler(CallbackQueryHandler(bet_option_callback, pattern="^bet_option_"))
     app.add_handler(CallbackQueryHandler(bet_amount_callback, pattern="^bet_amount_|^bet_back$"))
     app.add_handler(CallbackQueryHandler(bet_command, pattern="^bet_event_"))

@@ -1466,59 +1466,97 @@ def schedule_betting_events(job_queue, app):
     publish_time = convert_local_to_utc(publish_time_str)
     publish_datetime = datetime.datetime.combine(today, publish_time)
     
-    # Проверяем, не прошло ли уже время публикации события
+    # Время для закрытия ставок
+    close_time_str = betting_config.get("close_time", "20:00")
+    close_time = convert_local_to_utc(close_time_str)
+    close_datetime = datetime.datetime.combine(today, close_time)
+    
+    # Время для публикации результатов
+    results_time_str = betting_config.get("results_time", "21:00")
+    results_time = convert_local_to_utc(results_time_str)
+    results_datetime = datetime.datetime.combine(today, results_time)
+    
+    # Проверяем текущее время в UTC
     now_utc = datetime.datetime.utcnow()
     
-    # Если текущее время уже больше запланированного, переносим на следующий день
-    if now_utc > publish_datetime:
+    # План на следующий день нужен, только если все задачи на сегодня уже прошли
+    all_times_passed = (now_utc > publish_datetime and now_utc > close_datetime and now_utc > results_datetime)
+    
+    # Если все запланированные времена на сегодня уже прошли, переносим на следующий день
+    if all_times_passed:
         tomorrow = today + datetime.timedelta(days=1)
         tomorrow_weekday = (today_weekday + 1) % 7
         
         # Проверяем, включен ли следующий день в расписание
         if tomorrow_weekday in betting_config.get("days", [0, 1, 2, 3, 4, 5, 6]):
             publish_datetime = datetime.datetime.combine(tomorrow, publish_time)
-            close_time_str = betting_config.get("close_time", "20:00")
-            close_time = convert_local_to_utc(close_time_str)
             close_datetime = datetime.datetime.combine(tomorrow, close_time)
-            
-            results_time_str = betting_config.get("results_time", "21:00")
-            results_time = convert_local_to_utc(results_time_str)
             results_datetime = datetime.datetime.combine(tomorrow, results_time)
             
-            logging.info(f"Время ставок на сегодня уже прошло. Планирую события на завтра ({tomorrow}).")
+            logging.info(f"Все времена ставок на сегодня уже прошли. Планирую события на завтра ({tomorrow}).")
         else:
             logging.warning(f"Следующий день ({tomorrow_weekday}) не включен в расписание ставок. Пропускаем.")
             return
     else:
-        # Если время не прошло, используем сегодняшнюю дату
-        close_time_str = betting_config.get("close_time", "20:00")
-        close_time = convert_local_to_utc(close_time_str)
-        close_datetime = datetime.datetime.combine(today, close_time)
+        # Если не все времена прошли, определяем, какие задачи еще можно запланировать на сегодня
+        logging.info(f"Планирую оставшиеся задачи для ставок на сегодня ({today}).")
         
-        results_time_str = betting_config.get("results_time", "21:00")
-        results_time = convert_local_to_utc(results_time_str)
-        results_datetime = datetime.datetime.combine(today, results_time)
+        # Если время публикации события уже прошло, не планируем его
+        publish_event_scheduled = now_utc <= publish_datetime
+        
+        # Если время закрытия ставок еще не наступило, планируем задачу закрытия
+        close_event_scheduled = now_utc <= close_datetime
+        
+        # Если время публикации результатов еще не наступило, планируем задачу публикации результатов
+        results_event_scheduled = now_utc <= results_datetime
     
-    # Запланируем публикацию события
-    job_queue.run_once(
-        publish_betting_event, # Просто передаем функцию
-        when=publish_datetime,
-        name="publish_betting_event"
-    )
-    logging.info(f"Запланирована публикация события для ставок на {publish_datetime} UTC (локальное время: {publish_time_str})")
-    
-    # Запланируем закрытие приема ставок
-    job_queue.run_once(
-        close_betting_event, # Просто передаем функцию
-        when=close_datetime,
-        name="close_betting_event"
-    )
-    logging.info(f"Запланировано закрытие приема ставок на {close_datetime} UTC (локальное время: {close_time_str})")
-    
-    # Запланируем публикацию результатов
-    job_queue.run_once(
-        process_betting_results, # Просто передаем функцию
-        when=results_datetime,
-        name="process_betting_results"
-    )
-    logging.info(f"Запланирована публикация результатов ставок на {results_datetime} UTC (локальное время: {results_time_str})")
+    # Планируем задачи в зависимости от проверок
+    if not all_times_passed:
+        # Публикация события (только если время еще не прошло)
+        if publish_event_scheduled:
+            job_queue.run_once(
+                publish_betting_event,
+                when=publish_datetime,
+                name="publish_betting_event"
+            )
+            logging.info(f"Запланирована публикация события для ставок на {publish_datetime} UTC (локальное время: {publish_time_str})")
+        
+        # Закрытие приема ставок (только если время еще не прошло)
+        if close_event_scheduled:
+            job_queue.run_once(
+                close_betting_event,
+                when=close_datetime,
+                name="close_betting_event"
+            )
+            logging.info(f"Запланировано закрытие приема ставок на {close_datetime} UTC (локальное время: {close_time_str})")
+        
+        # Публикация результатов (только если время еще не прошло)
+        if results_event_scheduled:
+            job_queue.run_once(
+                process_betting_results,
+                when=results_datetime,
+                name="process_betting_results"
+            )
+            logging.info(f"Запланирована публикация результатов ставок на {results_datetime} UTC (локальное время: {results_time_str})")
+    else:
+        # Если все времена прошли, планируем все задачи на завтра
+        job_queue.run_once(
+            publish_betting_event,
+            when=publish_datetime,
+            name="publish_betting_event"
+        )
+        logging.info(f"Запланирована публикация события для ставок на {publish_datetime} UTC (локальное время: {publish_time_str})")
+        
+        job_queue.run_once(
+            close_betting_event,
+            when=close_datetime,
+            name="close_betting_event"
+        )
+        logging.info(f"Запланировано закрытие приема ставок на {close_datetime} UTC (локальное время: {close_time_str})")
+        
+        job_queue.run_once(
+            process_betting_results,
+            when=results_datetime,
+            name="process_betting_results"
+        )
+        logging.info(f"Запланирована публикация результатов ставок на {results_datetime} UTC (локальное время: {results_time_str})")
