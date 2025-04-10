@@ -1,0 +1,67 @@
+{
+    "events": [
+        {
+            "id": 1,
+            "description": "В центре города появится гигантская статуя инопланетянина",
+            "question": "Появится ли гигантская статуя инопланетянина?",
+            "options": [
+                {
+                    "id": 1,
+                    "text": "Да, появится"
+                },
+                {
+                    "id": 2,
+                    "text": "Нет, не появится"
+                }
+            ],
+            "result_description": "Статуя действительно появится, но позже планируемого срока",
+            "is_active": false,
+            "winner_option_id": 1,
+            "results_published": false
+        },
+        {
+            "id": 2,
+            "description": "Футбольный матч: Команда A против Команды B",
+            "question": "Какая команда выиграет в сегодняшнем матче?",
+            "options": [
+                {
+                    "id": 1,
+                    "text": "Команда A"
+                },
+                {
+                    "id": 2,
+                    "text": "Ничья"
+                },
+                {
+                    "id": 3,
+                    "text": "Команда B"
+                }
+            ],
+            "result_description": "Команда B выиграла со счетом 2:1",
+            "is_active": false,
+            "winner_option_id": 3,
+            "results_published": true,
+            "publication_date": "2025-04-09",
+            "end_time": 1744203060
+        },
+        {
+            "id": 3,
+            "description": "Погода на выходных",
+            "question": "Будет ли дождь в субботу?",
+            "options": [
+                {
+                    "id": 1,
+                    "text": "Да, будет"
+                },
+                {
+                    "id": 2,
+                    "text": "Нет, не будет"
+                }
+            ],
+            "result_description": "День был солнечным, без осадков",
+            "is_active": false,
+            "winner_option_id": 2,
+            "results_published": false
+        }
+    ]
+}
