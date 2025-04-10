@@ -75,7 +75,7 @@ def reload_all_configs():
     global ERO_ANIME_DIR, ERO_REAL_DIR, SINGLE_MEME_DIR, STANDART_ART_DIR, STANDART_MEME_DIR, VIDEO_MEME_DIR, VIDEO_ERO_DIR, VIDEO_AUTO_DIR
     global ARCHIVE_ERO_ANIME_DIR, ARCHIVE_ERO_REAL_DIR, ARCHIVE_SINGLE_MEME_DIR, ARCHIVE_STANDART_ART_DIR, ARCHIVE_STANDART_MEME_DIR, ARCHIVE_VIDEO_MEME_DIR, ARCHIVE_VIDEO_ERO_DIR, ARCHIVE_VIDEO_AUTO_DIR
     global ANECDOTES_FILE
-    global CHAT_ID, ADMIN_GROUP_ID, TIMEZONE_OFFSET
+    global CHAT_ID, ADMIN_GROUP_ID, TIMEZONE_OFFSET, ADMIN_USERNAMES
     
     # Загружаем все конфигурации, игнорируя кэш
     bot_config = load_config('bot_config.json', use_cache=False)
@@ -96,6 +96,8 @@ def reload_all_configs():
     CHAT_ID = bot_config['allowed_chat_ids'][0]  # Используем первый разрешенный чат как основной
     ADMIN_GROUP_ID = bot_config.get('admin_group_id', CHAT_ID)  # Если не указана отдельная группа администраторов, используем основной чат
     TIMEZONE_OFFSET = bot_config.get('timezone_offset', 0)  # Смещение часового пояса в часах
+    # Список юзернеймов администраторов для проверки прав
+    ADMIN_USERNAMES = ["TikFuchs", "Veanyk", "TopPelemeshka", "Fallen_Psycho"]  # Список администраторов без @
     
     # Создаем базовые пути с использованием Path
     MATERIALS_DIR = Path(paths_config['materials_dir'])
@@ -144,6 +146,8 @@ POST_CHAT_ID = bot_config['post_chat_id']       # ID чата для публи�
 CHAT_ID = bot_config['allowed_chat_ids'][0]  # Используем первый разрешенный чат как основной
 ADMIN_GROUP_ID = bot_config.get('admin_group_id', CHAT_ID)  # Если не указана отдельная группа администраторов, используем основной чат
 TIMEZONE_OFFSET = bot_config.get('timezone_offset', 0)  # Смещение часового пояса в часах
+# Список юзернеймов администраторов для проверки прав
+ADMIN_USERNAMES = ["TikFuchs", "Veanyk", "TopPelemeshka", "Fallen_Psycho"]  # Список администраторов без @
 
 # Создаем базовые пути с использованием Path
 MATERIALS_DIR = Path(paths_config['materials_dir'])  # Директория с материалами

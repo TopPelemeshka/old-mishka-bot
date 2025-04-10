@@ -626,11 +626,14 @@ async def publish_betting_event(context: CallbackContext):
         parse_mode="Markdown",
         reply_markup=reply_markup
     )
-    
-    # НЕ помечаем событие как неактивное при публикации!
-    # Событие должно оставаться активным, чтобы пользователи могли делать ставки
-    # Ставки будут закрыты по расписанию в close_time
-    
+
+    # Помечаем событие как неактивное при публикации
+    success = publish_event(event_id)
+    if success:
+        logging.info(f"Событие с ID {event_id} помечено как неактивное после публикации")
+    else:
+        logging.error(f"Не удалось пометить событие с ID {event_id} как неактивное")
+
     logging.info(f"Опубликовано событие для ставок (ID: {event_id}) в чат {POST_CHAT_ID}")
 
 async def process_betting_results(context: CallbackContext):
