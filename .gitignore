@@ -32,7 +32,15 @@ ENV/
 *.swo
 
 # Logs
+logs/
 *.log
+*.log.*
+*.log
+
+config_backup/
+state_data_backup/
+
+*.example.json
 
 # Local configuration files
 config/bot_config.json

@@ -101,6 +101,7 @@ from handlers.technical_work import technical_work_command
 from handlers.sound import sound_command, sound_callback
 from handlers.sleep_command import sleep_command
 from handlers.morning_command import morning_command
+from handlers.meme_search import search_meme_command
 
 # Импортируем из autopost
 from autopost import (
@@ -304,7 +305,13 @@ def main() -> None:
     Основная функция, которая инициализирует бота, добавляет обработчики команд
     и запускает опрос сервера Telegram на наличие обновлений
     """
-    app = ApplicationBuilder().token(TOKEN).build()
+    num_concurrent_updates = 10 # или из конфига
+    app = (
+        ApplicationBuilder()
+        .token(TOKEN)
+        .concurrent_updates(num_concurrent_updates)
+        .build()
+    )
 
     # --- ВАЖНО ---:
     # Считываем состояние флагов до того, как отдадим бота в run_polling
@@ -396,6 +403,8 @@ def main() -> None:
     app.add_handler(CallbackQueryHandler(bet_amount_callback, pattern="^bet_amount_|^bet_back$"))
     app.add_handler(CallbackQueryHandler(bet_command, pattern="^bet_event_"))
     app.add_handler(CallbackQueryHandler(history_command, pattern="^history_betting$"))
+    
+    app.add_handler(CommandHandler("meme", search_meme_command))
 
     # Планировщик задач
     # Назначаем "ночной" джоб для сброса расписания
